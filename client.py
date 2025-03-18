@@ -20,13 +20,18 @@ Functions:
 # Requirements and constants
 import sys
 import requests
+from rich import print
+from omegaconf import OmegaConf
 
+CONF = OmegaConf.load('./config.yaml')
 
 # %% ---- 2025-03-18 ------------------------
 # Function and class
+
+
 class MyRequest:
     scheme = 'http'
-    hostname = 'localhost:5000'
+    hostname = f'{CONF.connection.host}:{CONF.connection.port}'
 
     def post(self, path: str, body: dict) -> requests.Response:
         '''
@@ -34,11 +39,14 @@ class MyRequest:
 
         :param path str: the path to the post request.
         :param body dict: the body of the post request.
-        :returns response requests.Response: the response.
+        :returns resp requests.Response: the response.
         '''
         url = f'{self.scheme}://{self.hostname}/{path}'
-        response = requests.post(url, json=body)
-        return response
+        print(f'\n\n{url}')
+        resp = requests.post(url, json=body)
+        print(f'Status Code: {resp.status_code}')
+        print(f'Response JSON: {resp.json()}')
+        return resp
 
     def get(self, path: str) -> requests.Response:
         url = f'{self.scheme}://{self.hostname}/{path}'
@@ -66,21 +74,42 @@ if __name__ == '__main__':
     # Send the post request to the server.
     mr = MyRequest()
 
+    # --------------------------------------------------
     body = {
-        'key1': 'value1',
-        'key2': 'value2'
+        'org_id': 1,
+        'user_id': 2,
+        'project_name': 'Project 1',
+        'brain_wave_list': []
     }
 
-    resp = mr.post('echo', body)
-    print(f'Status Code: {resp.status_code}')
-    print(f'Response JSON: {resp.json()}')
+    resp = mr.post('/echo', body)
 
-    resp = mr.get('echo')
-    print(f'Status Code: {resp.status_code}')
-    print(f'Response JSON: {resp.json()}')
+    # --------------------------------------------------
+    resp = mr.get('/echo')
 
+    # --------------------------------------------------
     print("Stream starts, listening for messages...")
-    mr.get_event_stream('event-stream')
+    mr.get_event_stream('/event-stream')
+
+    # --------------------------------------------------
+    resp = mr.post('/train', body=body)
+
+    dct = resp.json()['body']
+    predict_body = {
+        'org_id': 1,
+        'user_id': 2,
+        'project_name': 'Project 1',
+        'brain_wave_list': [],
+        'latest_model_list': [{
+            'model_path': dct['model_path'],
+            'checksum': dct['checksum']
+        }]
+    }
+
+    # --------------------------------------------------
+    for _ in range(10):
+        resp = mr.post('/predict', body=predict_body)
+
     sys.exit(0)
 
 
