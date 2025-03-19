@@ -23,7 +23,6 @@ import time
 
 from tqdm.auto import tqdm
 from omegaconf import OmegaConf
-from multiprocessing import Process
 from flask import Flask, Response, request, jsonify
 
 from interface.util import upload_model_info
