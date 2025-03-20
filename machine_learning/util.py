@@ -108,6 +108,7 @@ class MyModel:
         model.fit(X, y)
 
         # Generate the model name.
+        name += '\n'
         name += '\n'.join([str(e) for e in [
             datetime.now().isoformat(),
             np.random.random()
