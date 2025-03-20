@@ -158,9 +158,8 @@ def _train():
     def train_model():
         '''Train the model.'''
         print(info)
-        name = '\n'.join([str(e) for e in
-                          [info['org_id'], info['user_id'], info['project_name']]])
-        trained = MM.train(info, name, X=None, y=None)
+        names = [info['org_id'], info['user_id'], info['project_name']]
+        trained = MM.train(info, names, X=None, y=None)
         # Tag the info with trained stuff.
         info.update(trained)
         # Tag the info with created_by signature.

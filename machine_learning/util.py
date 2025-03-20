@@ -74,7 +74,7 @@ class MyModel:
         pred = model.predict(X)
         return pred
 
-    def train(self, info: dict, name: str, X: np.ndarray, y: np.ndarray) -> dict:
+    def train(self, info: dict, names: list, X: np.ndarray, y: np.ndarray) -> dict:
         '''
         Train the model from X, y.
         Save the model into binary file.
@@ -89,13 +89,13 @@ class MyModel:
         The output model_name is name+datetime+random.bin
 
         :param info dict: the info dictionary.
-        :param name str: the model name.
+        :param names list: the parts of model name.
         :param X np.ndarray: the input data.
         :param y np.ndarray: the target data.
 
         :return dict: the model_path and model_name.
         '''
-        logger.debug(f'Train model with {info}, {name}')
+        logger.debug(f'Train model with {info}, {names}')
 
         # ! I think it costs 1.3 seconds to train a model.
         # ! Make the X & y.
@@ -108,11 +108,8 @@ class MyModel:
         model.fit(X, y)
 
         # Generate the model name.
-        name += '\n'
-        name += '\n'.join([str(e) for e in [
-            datetime.now().isoformat(),
-            np.random.random()
-        ]])
+        names.extend([datetime.now().isoformat(), np.random.random()])
+        name = '\n'.join([str(e) for e in names])
         logger.debug(f'Using model name: {name}')
 
         # Generate the unique filename with md5 algorithm.
