@@ -75,9 +75,9 @@ The POST body requires:
 RESPONSE:
 The response is the updated post body:
 
-- model_path: the path of the model file.
-- checksum: the checksum of the model file.
-- created_by
+- model_path: the path of the model file and the checksum of the file. The format is /path/to/model,checksum.
+- model_name: the name of the model. The format is `org_id\nuser_id\nproject_name\ndatetime\nrandom`.
+- created_by: the creator's signature.
 
 ## Configuration
 
