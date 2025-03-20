@@ -102,7 +102,7 @@ if __name__ == '__main__':
         'brain_wave_list': [],
         'latest_model_list': [{
             'model_path': dct['model_path'],
-            'checksum': dct['checksum']
+            'model_name': dct['model_name']
         }]
     }
 

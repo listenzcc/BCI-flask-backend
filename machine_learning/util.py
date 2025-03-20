@@ -22,8 +22,10 @@ import time
 import joblib
 import hashlib
 import numpy as np
+
 from typing import Tuple
 from pathlib import Path
+from datetime import datetime
 from sklearn.svm import SVR
 from loguru import logger
 
@@ -72,8 +74,28 @@ class MyModel:
         pred = model.predict(X)
         return pred
 
-    def train(self, info: dict, X: np.ndarray, y: np.ndarray) -> Tuple[Path, str]:
-        logger.debug(f'Train model with {info}')
+    def train(self, info: dict, name: str, X: np.ndarray, y: np.ndarray) -> dict:
+        '''
+        Train the model from X, y.
+        Save the model into binary file.
+        The model_name is generated with md5 algorithm.
+        The format of the model_name is name+datetime+random.
+        The binary file name is the md5 hash of the model_name + .bin.
+        Moreover, the checksum of the binary file is calculated with sha256 algorithm.
+
+        The output model_path is full path of the binary file and checksum.
+        The model_path format is path/to/filename.bin,checksum.
+
+        The output model_name is name+datetime+random.bin
+
+        :param info dict: the info dictionary.
+        :param name str: the model name.
+        :param X np.ndarray: the input data.
+        :param y np.ndarray: the target data.
+
+        :return dict: the model_path and model_name.
+        '''
+        logger.debug(f'Train model with {info}, {name}')
 
         # ! I think it costs 1.3 seconds to train a model.
         # ! Make the X & y.
@@ -85,18 +107,26 @@ class MyModel:
         model = SVR(kernel='linear')
         model.fit(X, y)
 
-        # Generate the unique filename with md5 algorithm
-        localtime = time.time()
-        rnd = np.random.random()
-        unique = f'{info}-{localtime}-{rnd}'
-        filename = hashlib.md5(unique.encode()).hexdigest() + '.bin'
-        logger.debug(f'Generated filename: {filename}')
+        # Generate the model name.
+        name += '\n'.join([str(e) for e in [
+            datetime.now().isoformat(),
+            np.random.random()
+        ]])
+        logger.debug(f'Using model name: {name}')
+
+        # Generate the unique filename with md5 algorithm.
+        filename = hashlib.md5(name.encode()).hexdigest() + '.bin'
+        logger.debug(f'Using file name: {filename}')
 
         # Save the model and info into binary file.
         dst = self.inventory_path.joinpath(filename)
         checksum = self.save_model(model, info, dst)
+        logger.debug(f'Using checksum: {checksum}')
 
-        return dst, checksum
+        return {
+            'model_path': ','.join([dst.as_posix(), checksum]),
+            'model_name': name
+        }
 
     def save_model(self, model, info: dict, path: Path) -> str:
         '''

@@ -69,6 +69,12 @@ def _event_stream():
 
 @app.route('/predict', methods=['POST'])
 def _predict():
+    '''
+    Rules:
+    1. The body is the received body. If error occurs, just send the body back.
+    1.1. In the other word, the body is considered as READ-ONLY.
+    2. The info is the running info. If everything is fine, send the info back.
+    '''
     body = request.get_json()
 
     # Fetch body with default values
@@ -78,7 +84,7 @@ def _predict():
         user_id=body.get('user_id', _default),
         project_name=body.get('project_name', _default),
         brain_wave_list=body.get('brain_wave_list', _default),
-        latest_model_list=body.get('latest_model_list')
+        latest_model_list=body.get('latest_model_list', _default)
     )
 
     # Check if the required parameters are correct.
@@ -89,10 +95,10 @@ def _predict():
 
     # Everything is fine.
     # Discard the known large ball.
-    if 'brain_wave_list' in body:
-        body.pop('brain_wave_list')
+    if 'brain_wave_list' in info:
+        info.pop('brain_wave_list')
 
-    latest_model_list = body.get('latest_model_list')
+    latest_model_list = info.get('latest_model_list')
     if not isinstance(latest_model_list, list) or len(latest_model_list) == 0:
         # 400 Bad Request
         msg = "Bad Request, missing available model(s)."
@@ -101,8 +107,8 @@ def _predict():
     # Incase something wrong during the predicting process.
     try:
         latest_model = latest_model_list[-1]
-        model_path = latest_model.get('model_path')
-        checksum = latest_model.get('checksum')
+        raw_model_path = latest_model.get('model_path')
+        model_path, checksum = raw_model_path.split(',')
         MM.prepare_model(model_path, checksum)
         pred = MM.predict(checksum, X=None)
         pred = str(pred)
@@ -111,12 +117,18 @@ def _predict():
         return MSG.error_response(body=body, msg=f'{e}'), 500
 
     # Send OK back.
-    body.update(dict(pred=pred))
-    return MSG.success_response(body=body), 200
+    info.update(dict(pred=pred))
+    return MSG.success_response(body=info), 200
 
 
 @app.route('/train', methods=['POST'])
 def _train():
+    '''
+    Rules:
+    1. The body is the received body. If error occurs, just send the body back.
+    1.1. In the other word, the body is considered as READ-ONLY.
+    2. The info is the running info. If everything is fine, send the info back.
+    '''
     body = request.get_json()
 
     # Fetch body with default values
@@ -136,23 +148,31 @@ def _train():
 
     # Everything is fine.
     # Discard the known large ball.
-    if 'brain_wave_list' in body:
-        body.pop('brain_wave_list')
+    if 'brain_wave_list' in info:
+        brain_wave_list = info.pop('brain_wave_list')
+        # TODO: Get X from brain_wave_list
+        # TODO: Get y from brain_wave_list
+    X = None
+    y = None
 
     def train_model():
         '''Train the model.'''
         print(info)
-        path, checksum = MM.train(info, X=None, y=None)
-        info.update(dict(
-            model_path=path.as_posix(),
-            checksum=checksum,
-            created_by=CONF.project.name
-        ))
-        body.update(info)
-        try:
-            upload_model_info(info)
-        except:
-            pass
+        name = '\n'.join([str(e) for e in
+                          [info['org_id'], info['user_id'], info['project_name']]])
+        trained = MM.train(info, name, X=None, y=None)
+        # Tag the info with trained stuff.
+        info.update(trained)
+        # Tag the info with created_by signature.
+        info.update({
+            'created_by': CONF.project.name
+        })
+
+        # Deprecated: Upload the model info in async.
+        # try:
+        #     upload_model_info(info)
+        # except:
+        #     pass
 
     # Incase something wrong during the training process.
     try:
@@ -162,7 +182,7 @@ def _train():
         return MSG.error_response(body=body, msg=f'{e}'), 400
 
     # Send OK back.
-    return MSG.success_response(body=body), 200
+    return MSG.success_response(body=info), 200
 
 
 # %% ---- 2025-03-18 ------------------------
