@@ -18,6 +18,7 @@ Functions:
 
 # %% ---- 2025-03-18 ------------------------
 # Requirements and constants
+import numpy as np
 import sys
 import random
 import requests
@@ -68,6 +69,21 @@ class MyRequest:
         return
 
 
+def generate_data(seconds: int):
+    channels = 4
+    fs = 250  # Hz
+    data = []
+    for i in range(seconds):
+        data.append(dict(
+            id=1,
+            org_id=2,
+            other=3,
+            create_time=i,
+            brain_record=np.random.random((channels, fs)).tolist()
+        ))
+    return data
+
+
 # %% ---- 2025-03-18 ------------------------
 # Play ground
 if __name__ == '__main__':
@@ -80,8 +96,8 @@ if __name__ == '__main__':
         'org_id': 1,
         'user_id': 2,
         'project_name': 'Project 1',
-        'attention': [random.random() for e in range(30*250)],
-        'non_attention': [random.random() for e in range(30*250)]
+        'attention': generate_data(seconds=32),
+        'non_attention': generate_data(seconds=31)
     }
 
     resp = mr.post('/echo', body)
@@ -101,7 +117,7 @@ if __name__ == '__main__':
         'org_id': 1,
         'user_id': 2,
         'project_name': 'Project 1',
-        'brain_wave_list': [random.random() for e in range(5*250)],
+        'brain_wave_list': generate_data(seconds=6),
         'latest_model_list': [{
             'model_path': dct['model_path'],
             'model_name': dct['model_name']

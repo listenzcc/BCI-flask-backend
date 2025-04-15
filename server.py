@@ -34,9 +34,12 @@ MM = MyModel(CONF.model.path)
 
 app = Flask(__name__)
 
+SamplingRate = 250  # Hz
 
 # %% ---- 2025-03-18 ------------------------
 # Function and class
+
+
 class Message:
     def success_response(self, body: dict) -> Response:
         return jsonify({'status': 'success', 'body': body})
@@ -88,8 +91,6 @@ def _predict():
         latest_model_list=body.get('latest_model_list', _default)
     )
 
-    X = convert_brain_wave_list_into_X(brain_wave_list, length=5)
-
     # Check if the required parameters are correct.
     if any([v is None for k, v in info.items()]):
         # 400 Bad Request
@@ -115,7 +116,7 @@ def _predict():
         raw_model_path = latest_model.get('model_path')
         model_path, checksum = raw_model_path.split(',')
         MM.prepare_model(model_path, checksum)
-        pred = MM.predict(checksum, X=None)
+        pred = MM.predict(checksum, X)
         pred = str(pred)
     except Exception as e:
         # 500 Internal Server Error
@@ -163,6 +164,20 @@ def _train():
         X_attention = convert_brain_wave_list_into_X(d1, length=30)
         X_non_attention = convert_brain_wave_list_into_X(d2, length=30)
 
+        d = []
+        for i in range(6):
+            d.append(
+                X_attention[:, i*5*SamplingRate:(i+1)*5*SamplingRate])
+        X_attention = np.array(d)
+
+        d = []
+        for i in range(6):
+            d.append(
+                X_non_attention[:, i*5*SamplingRate:(i+1)*5*SamplingRate])
+        X_non_attention = np.array(d)
+
+        print(X_attention.shape, X_non_attention.shape)
+
     def train_model():
         '''Train the model.'''
         print(info)
@@ -194,14 +209,19 @@ def _train():
     return MSG.success_response(body=info), 200
 
 
-def convert_brain_wave_list_into_X(brain_wave_list, fs: int = 250, length: float = 30):
+def convert_brain_wave_list_into_X(brain_wave_list, fs: int = SamplingRate, length: float = 30):
     '''
+    The brain_wave_list should be (channels x points) matrix.
     Convert brain_wave_list into X data.
     '''
     n = int(fs*length)
-    X = np.array(brain_wave_list)
-    assert len(X) >= n, f'Not enough data to fetch, {len(X)} < {n}'
-    X = X[-n:]
+    # Sort the data as create_time increasing order.
+    X = np.array([e['brain_record']
+                 for e in sorted(brain_wave_list, key=lambda e: e['create_time'])])
+
+    X = np.concatenate([e.transpose() for e in X]).transpose()
+    assert X.shape[1] >= n, f'Not enough data to fetch, {X.shape} < {n}'
+    X = X[:, -n:]
     return X
 
 
