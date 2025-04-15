@@ -143,9 +143,9 @@ def _train():
         user_id=body.get('user_id', _default),
         project_name=body.get('project_name', _default),
         brain_wave_list_attention=body.get(
-            'brain_wave_list_attention', _default),
+            'attention', _default),
         brain_wave_list_non_attention=body.get(
-            'brain_wave_list_non_attention', _default)
+            'non_attention', _default)
     )
 
     # Check if the required parameters are correct.
@@ -156,7 +156,7 @@ def _train():
 
     # Everything is fine.
     # Discard the known large ball.
-    if 'brain_wave_list' in info:
+    if 'brain_wave_list_attention' in info and 'brain_wave_list_non_attention' in info:
         d1 = info.pop('brain_wave_list_attention')
         d2 = info.pop('brain_wave_list_non_attention')
         # Require 30s data.
@@ -186,6 +186,8 @@ def _train():
         train_model()
     except Exception as e:
         # 400 Bad Request
+        import traceback
+        traceback.print_exc()
         return MSG.error_response(body=body, msg=f'{e}'), 400
 
     # Send OK back.

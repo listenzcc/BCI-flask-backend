@@ -19,6 +19,7 @@ Functions:
 # %% ---- 2025-03-18 ------------------------
 # Requirements and constants
 import sys
+import random
 import requests
 from rich import print
 from omegaconf import OmegaConf
@@ -79,7 +80,8 @@ if __name__ == '__main__':
         'org_id': 1,
         'user_id': 2,
         'project_name': 'Project 1',
-        'brain_wave_list': []
+        'attention': [random.random() for e in range(30*250)],
+        'non_attention': [random.random() for e in range(30*250)]
     }
 
     resp = mr.post('/echo', body)
@@ -99,7 +101,7 @@ if __name__ == '__main__':
         'org_id': 1,
         'user_id': 2,
         'project_name': 'Project 1',
-        'brain_wave_list': [],
+        'brain_wave_list': [random.random() for e in range(5*250)],
         'latest_model_list': [{
             'model_path': dct['model_path'],
             'model_name': dct['model_name']
