@@ -29,6 +29,8 @@ from datetime import datetime
 from sklearn.svm import SVR
 from loguru import logger
 
+from .AttentionScoreEEGProcessor import EEGProcessor
+
 
 # %% ---- 2025-03-18 ------------------------
 # Function and class
@@ -64,17 +66,13 @@ class MyModel:
 
     def predict(self, checksum: str, X: np.ndarray):
         dct = self.m_cache.get(checksum)
-        model = dct['model']
+        model: EEGProcessor = dct['model']
         logger.debug(f'Loaded model: {model}')
 
-        # ! I think it costs 0.3 seconds to predict with the model.
-        # ! Make the X.
-        time.sleep(0.3)
-        X = np.random.random((100, 200))
-        pred = model.predict(X)
-        return pred
+        attention_score = model.process_online(X)
+        return attention_score
 
-    def train(self, info: dict, names: list, X: np.ndarray, y: np.ndarray) -> dict:
+    def train(self, info: dict, names: list, X_attention: np.ndarray, X_non_attention) -> dict:
         '''
         Train the model from X, y.
         Save the model into binary file.
@@ -97,15 +95,9 @@ class MyModel:
         '''
         logger.debug(f'Train model with {info}, {names}')
 
-        # ! I think it costs 1.3 seconds to train a model.
-        # ! Make the X & y.
-        time.sleep(1.3)
-        X = np.random.random((100, 200))
-        y = np.random.random((100,))
-
-        # Train the SVR with scipy module.
-        model = SVR(kernel='linear')
-        model.fit(X, y)
+        # Train model.
+        model = EEGProcessor()
+        model.train(X_attention, X_non_attention)
 
         # Generate the model name.
         names.extend([datetime.now().isoformat(), np.random.random()])

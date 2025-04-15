@@ -20,6 +20,7 @@ Functions:
 # Requirements and constants
 import sys
 import time
+import numpy as np
 
 from tqdm.auto import tqdm
 from omegaconf import OmegaConf
@@ -87,6 +88,8 @@ def _predict():
         latest_model_list=body.get('latest_model_list', _default)
     )
 
+    X = convert_brain_wave_list_into_X(brain_wave_list, length=5)
+
     # Check if the required parameters are correct.
     if any([v is None for k, v in info.items()]):
         # 400 Bad Request
@@ -96,7 +99,9 @@ def _predict():
     # Everything is fine.
     # Discard the known large ball.
     if 'brain_wave_list' in info:
-        info.pop('brain_wave_list')
+        brain_wave_list = info.pop('brain_wave_list')
+        # Require 5s data.
+        X = convert_brain_wave_list_into_X(brain_wave_list, length=5)
 
     latest_model_list = info.get('latest_model_list')
     if not isinstance(latest_model_list, list) or len(latest_model_list) == 0:
@@ -137,7 +142,10 @@ def _train():
         org_id=body.get('org_id', _default),
         user_id=body.get('user_id', _default),
         project_name=body.get('project_name', _default),
-        brain_wave_list=body.get('brain_wave_list', _default)
+        brain_wave_list_attention=body.get(
+            'brain_wave_list_attention', _default),
+        brain_wave_list_non_attention=body.get(
+            'brain_wave_list_non_attention', _default)
     )
 
     # Check if the required parameters are correct.
@@ -149,17 +157,17 @@ def _train():
     # Everything is fine.
     # Discard the known large ball.
     if 'brain_wave_list' in info:
-        brain_wave_list = info.pop('brain_wave_list')
-        # TODO: Get X from brain_wave_list
-        # TODO: Get y from brain_wave_list
-    X = None
-    y = None
+        d1 = info.pop('brain_wave_list_attention')
+        d2 = info.pop('brain_wave_list_non_attention')
+        # Require 30s data.
+        X_attention = convert_brain_wave_list_into_X(d1, length=30)
+        X_non_attention = convert_brain_wave_list_into_X(d2, length=30)
 
     def train_model():
         '''Train the model.'''
         print(info)
         names = [info['org_id'], info['user_id'], info['project_name']]
-        trained = MM.train(info, names, X=None, y=None)
+        trained = MM.train(info, names, X_attention, X_non_attention)
         # Tag the info with trained stuff.
         info.update(trained)
         # Tag the info with created_by signature.
@@ -182,6 +190,17 @@ def _train():
 
     # Send OK back.
     return MSG.success_response(body=info), 200
+
+
+def convert_brain_wave_list_into_X(brain_wave_list, fs: int = 250, length: float = 30):
+    '''
+    Convert brain_wave_list into X data.
+    '''
+    n = int(fs*length)
+    X = np.array(brain_wave_list)
+    assert len(X) >= n, f'Not enough data to fetch, {len(X)} < {n}'
+    X = X[-n:]
+    return X
 
 
 # %% ---- 2025-03-18 ------------------------
