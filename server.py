@@ -234,16 +234,16 @@ def _train():
     return MSG.success_response(body=info), 200
 
 
-def convert_predict_record_into_X(dct: dict):
+def convert_predict_record_into_X(data):
     '''
     The dct->predict_record should be the list of (channels x points).
     Convert it into ndarray.
 
-    :param dct (dict): The input dict like object containing predict_record.
+    :param data (list): The data in list.
 
     :return: The ndarray of (channels x points) shape.
     '''
-    return np.array(dct['predict_record'])
+    return np.array(data)
 
 
 def convert_brain_wave_list_into_X(brain_wave_list, fs: int = SamplingRate, length: float = 30):
