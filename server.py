@@ -46,8 +46,8 @@ class Message:
     def success_response(self, body: dict) -> Response:
         return jsonify({'status': 'success', 'body': body})
 
-    def error_response(self, body: dict, msg: str) -> Response:
-        return jsonify({'status': 'error', 'msg': msg, 'body': body})
+    def error_response(self, body: dict, msg: str, tb: str = '') -> Response:
+        return jsonify({'status': 'error', 'msg': msg, 'body': body, 'traceback': tb})
 
 
 MSG = Message()
@@ -81,23 +81,31 @@ def _predict():
     1.1. In the other word, the body is considered as READ-ONLY.
     2. The info is the running info. If everything is fine, send the info back.
     '''
-    body = request.get_json()
+    try:
+        body = request.get_json()
 
-    # Fetch body with default values
-    _default = None  # 'default or None'
-    info = dict(
-        org_id=body.get('org_id', _default),
-        user_id=body.get('user_id', _default),
-        project_name=body.get('project_name', _default),
-        name=body.get('name', _default),
-        brain_wave_list=body.get('brain_wave_list', _default),
-        latest_model_list=body.get('latest_model_list', _default)
-    )
+        # Fetch body with default values
+        _default = None  # 'default or None'
+        info = dict(
+            org_id=body.get('org_id', _default),
+            user_id=body.get('user_id', _default),
+            project_name=body.get('project_name', _default),
+            name=body.get('name', _default),
+            brain_wave_list=body.get('brain_wave_list', _default),
+            latest_model_list=body.get('latest_model_list', _default)
+        )
+    except Exception as e:
+        import traceback
+        # 400 Bad Request
+        tb = traceback.format_exc()
+        print(tb)
+        tb = f'传入数据错误: {e}'
+        return MSG.error_response(body=body, msg=tb, tb=tb), 400
 
     # Check if the required parameters are correct.
     if any([v is None for k, v in info.items()]):
         # 400 Bad Request
-        msg = "Bad Request, missing parameter(s)."
+        msg = '传入数据缺项'
         return MSG.error_response(body=body, msg=msg), 400
 
     # Everything is fine.
@@ -109,14 +117,17 @@ def _predict():
             X = convert_predict_record_into_X(brain_wave_list)
         except Exception as e:
             import traceback
-            traceback.print_exc()
-            msg = f'Can not convert brain_wave_list into matrix: {brain_wave_list}'
-            return MSG.error_response(body=body, msg=msg), 400
+            tb = traceback.format_exc()
+            print(tb)
+            # msg = f'Can not convert brain_wave_list into matrix: {brain_wave_list}'
+            msg = f'脑电数据转换到矩阵时错误: {e}'
+            return MSG.error_response(body=body, msg=msg, tb=tb), 400
 
     latest_model_list = info.get('latest_model_list')
     if not isinstance(latest_model_list, list) or len(latest_model_list) == 0:
         # 400 Bad Request
-        msg = "Bad Request, missing available model(s)."
+        # msg = "Bad Request, missing available model(s)."
+        msg = '传入数据缺项'
         return MSG.error_response(body=body, msg=msg), 400
 
     # Incase something wrong during the predicting process.
@@ -144,34 +155,42 @@ def _train():
     1.1. In the other word, the body is considered as READ-ONLY.
     2. The info is the running info. If everything is fine, send the info back.
     '''
-    body = request.get_json()
+    try:
+        body = request.get_json()
 
-    # Fetch body with default values
-    _default = None  # 'default or None'
-    info = dict(
-        org_id=body.get('org_id', _default),
-        user_id=body.get('user_id', _default),
-        project_name=body.get('project_name', _default),
-        name=body.get('name', _default),
-        # Remove by protocol change.
-        # brain_wave_list_attention=body.get(
-        #     'attention', _default),
-        # brain_wave_list_non_attention=body.get(
-        #     'non_attention', _default)
-    )
+        # Fetch body with default values
+        _default = None  # 'default or None'
+        info = dict(
+            org_id=body.get('org_id', _default),
+            user_id=body.get('user_id', _default),
+            project_name=body.get('project_name', _default),
+            name=body.get('name', _default),
+            # Remove by protocol change.
+            # brain_wave_list_attention=body.get(
+            #     'attention', _default),
+            # brain_wave_list_non_attention=body.get(
+            #     'non_attention', _default)
+        )
+    except Exception as e:
+        import traceback
+        # 400 Bad Request
+        tb = traceback.format_exc()
+        print(tb)
+        tb = f'传入数据错误: {e}'
+        return MSG.error_response(body=body, msg=tb, tb=tb), 400
 
     # Check if the required parameters are correct.
     if any([v is None for k, v in info.items()]):
         # 400 Bad Request
-        msg = "Bad Request, missing parameter(s)."
+        msg = '传入数据缺项'
         return MSG.error_response(body=body, msg=msg), 400
 
     # Everything is fine.
     # Discard the known large ball.
-    if 'brain_wave_list_attention' in info and 'brain_wave_list_non_attention' in info:
-        d1 = info.pop('brain_wave_list_attention')
-        d2 = info.pop('brain_wave_list_non_attention')
-        assert True, 'Should not happen'
+    # if 'brain_wave_list_attention' in info and 'brain_wave_list_non_attention' in info:
+    #     d1 = info.pop('brain_wave_list_attention')
+    #     d2 = info.pop('brain_wave_list_non_attention')
+    #     assert True, 'Should not happen'
 
     try:
         d1 = get_attention_brain_waves_by_condition(info)
@@ -198,9 +217,11 @@ def _train():
         print(X_attention.shape, X_non_attention.shape)
     except Exception as e:
         import traceback
-        traceback.print_exc()
         # 400 Bad Request
-        return MSG.error_response(body=body, msg=f'{e}'), 400
+        tb = traceback.format_exc()
+        print(tb)
+        msg = f'脑电数据转换到矩阵时错误: {e}'
+        return MSG.error_response(body=body, msg=msg, tb=tb), 400
 
     def train_model():
         '''Train the model.'''
@@ -215,20 +236,16 @@ def _train():
             'created_by': CONF.project.name
         })
 
-        # Deprecated: Upload the model info in async.
-        # try:
-        #     upload_model_info(info)
-        # except:
-        #     pass
-
     # Incase something wrong during the training process.
     try:
         train_model()
     except Exception as e:
         # 400 Bad Request
         import traceback
-        traceback.print_exc()
-        return MSG.error_response(body=body, msg=f'{e}'), 400
+        tb = traceback.format_exc()
+        print(tb)
+        msg = f'模型训练错误: {e}'
+        return MSG.error_response(body=body, msg=msg, tb=tb), 400
 
     # Send OK back.
     return MSG.success_response(body=info), 200
