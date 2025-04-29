@@ -1,0 +1,43 @@
+训练参数:
+    org_id: str
+    user_id: str
+    project_name: str
+    name: str
+    type: str 枚举 注意力游戏 记忆力游戏
+
+预测参数:
+    org_id: str
+    user_id: str
+    project_name: str
+    name: str
+    brain_wave_list: list 二维数组 (channels x times)
+    latest_model_list:
+        description: 文件名列表 我用其中最后一个
+        type: list
+        items:
+            - model_name: str
+              model_path: str
+    type: str 枚举 注意力游戏 记忆力游戏
+
+type参数:
+    注意力:
+        数据获取:
+            注意力:
+                method: get_attention_brain_waves_by_condition
+                brain_form: 注意力
+            非注意力:
+                method: get_non_attention_brain_waves_by_condition
+                brain_form: 非注意力
+        特征: theta / beta
+        模型: 注意力模型 AttentionScoreEEGProcessor
+
+    记忆力（待定）:
+        数据获取:
+            数据1:
+                method: get_attention_brain_waves_by_condition
+                brain_form: ？？？？
+            数据2:
+                method: get_non_attention_brain_waves_by_condition
+                brain_form: ？？？？
+        特征: alpha / theta
+        模型: 记忆力模型 EEGProcessing_memory
