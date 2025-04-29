@@ -47,7 +47,7 @@ class Message:
         return jsonify({'status': 'success', 'body': body})
 
     def error_response(self, body: dict, msg: str, tb: str = '') -> Response:
-        return jsonify({'status': 'error', 'msg': msg, 'body': body, 'traceback': tb})
+        return jsonify({'status': 'error', 'msg': msg, 'body': body})
 
 
 MSG = Message()
@@ -99,8 +99,8 @@ def _predict():
         # 400 Bad Request
         tb = traceback.format_exc()
         print(tb)
-        tb = f'传入数据错误: {e}'
-        return MSG.error_response(body=body, msg=tb, tb=tb), 400
+        msg = '传入数据错误'
+        return MSG.error_response(body=body, msg=msg, tb=tb), 400
 
     # Check if the required parameters are correct.
     if any([v is None for k, v in info.items()]):
@@ -120,7 +120,7 @@ def _predict():
             tb = traceback.format_exc()
             print(tb)
             # msg = f'Can not convert brain_wave_list into matrix: {brain_wave_list}'
-            msg = f'脑电数据转换到矩阵时错误: {e}'
+            msg = '脑电数据转换到矩阵时错误'
             return MSG.error_response(body=body, msg=msg, tb=tb), 400
 
     latest_model_list = info.get('latest_model_list')
@@ -176,8 +176,8 @@ def _train():
         # 400 Bad Request
         tb = traceback.format_exc()
         print(tb)
-        tb = f'传入数据错误: {e}'
-        return MSG.error_response(body=body, msg=tb, tb=tb), 400
+        msg = '传入数据错误'
+        return MSG.error_response(body=body, msg=msg, tb=tb), 400
 
     # Check if the required parameters are correct.
     if any([v is None for k, v in info.items()]):
@@ -220,7 +220,7 @@ def _train():
         # 400 Bad Request
         tb = traceback.format_exc()
         print(tb)
-        msg = f'脑电数据转换到矩阵时错误: {e}'
+        msg = '脑电数据转换到矩阵时错误'
         return MSG.error_response(body=body, msg=msg, tb=tb), 400
 
     def train_model():
@@ -244,7 +244,7 @@ def _train():
         import traceback
         tb = traceback.format_exc()
         print(tb)
-        msg = f'模型训练错误: {e}'
+        msg = '模型训练错误'
         return MSG.error_response(body=body, msg=msg, tb=tb), 400
 
     # Send OK back.
