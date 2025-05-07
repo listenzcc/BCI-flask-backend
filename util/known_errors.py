@@ -49,7 +49,12 @@ class ERRORS:
         code = 500
 
     class data_fetching_error:
-        msg = '获取时数据遇到错误'
+        msg = '获取数据时遇到错误'
+        name = 'Internal Server Error'
+        code = 500
+
+    class report_error:
+        msg = '生成报告时遇到错误'
         name = 'Internal Server Error'
         code = 500
 

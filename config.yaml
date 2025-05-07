@@ -7,3 +7,6 @@ connection:
 
 model:
   path: "D:/BCIProject/model"
+
+report:
+  path: "D:/BCIProject/report"

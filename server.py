@@ -27,7 +27,8 @@ from omegaconf import OmegaConf
 from flask import Flask, Response, request, jsonify
 
 from interface.util import upload_model_info
-from machine_learning.util import MyModel
+from machine_learning.model_worker import MyModel
+from machine_learning.report_worker import MyReport
 
 from util.log import logger
 from util.known_errors import ERRORS
@@ -36,6 +37,7 @@ from db.brain_waves_module.brain_waves_func import get_attention_brain_waves_by_
 
 CONF = OmegaConf.load('./config.yaml')
 MM = MyModel(CONF.model.path)
+MR = MyReport(CONF.report.path)
 
 app = Flask(__name__)
 
@@ -77,6 +79,44 @@ def _event_stream():
             yield f"Date: {time.ctime()}\n\n"
 
     return Response(eventStream(), mimetype="text/event-stream")
+
+
+@app.route('/report', methods=['POST'])
+def _report():
+    '''
+    Require to generate the report.
+    '''
+    # Fetch the input content.
+    try:
+        body = request.get_json()
+        info = dict(
+            name=body['name'],
+            org_id=body['org_id'],
+            user_id=body['user_id'],
+            project_name=body['project_name'],
+            event=body['event']
+        )
+        logger.info('1. Got posted data: {}'.format(';'.join(
+            [f'{k}: {v}' for k, v in info.items()])))
+    except Exception as exc:
+        logger.exception(exc)
+        err = ERRORS.request_error
+        return MSG.error_response(body={}, msg=err.msg), 400
+
+    try:
+        report_path, report_name = MR.generate_report(
+            info['name'], info['org_id'], info['user_id'], info['project_name'], info['event'])
+    except Exception as exc:
+        logger.exception(exc)
+        err = ERRORS.report_error
+        return MSG.error_response(body={}, msg=err.msg), 400
+
+    # Send OK back.
+    info.update(dict(report_name=report_name,
+                     report_path=report_path,
+                     create_by=CONF.project.name,
+                     update_by=CONF.project.name))
+    return MSG.success_response(body=info), 200
 
 
 @app.route('/predict', methods=['POST'])
@@ -121,9 +161,10 @@ def _predict():
         latest_model_list = info.get('latest_model_list')
         latest_model = latest_model_list[-1]
         raw_model_path = latest_model.get('model_path')
+        model_name = latest_model.get('model_name')
         model_path, checksum = raw_model_path.split(',')
         MM.prepare_model(model_path, checksum)
-        logger.info(f'3. Got model {model_path}:{checksum}')
+        logger.info(f'3. Got model {model_name}@{checksum}:{model_path}')
     except Exception as exc:
         logger.exception(exc)
         err = ERRORS.model_loading_error
