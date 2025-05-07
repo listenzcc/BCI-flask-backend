@@ -29,6 +29,9 @@ from flask import Flask, Response, request, jsonify
 from interface.util import upload_model_info
 from machine_learning.util import MyModel
 
+from util.log import logger
+from util.known_errors import ERRORS
+
 from db.brain_waves_module.brain_waves_func import get_attention_brain_waves_by_condition, get_non_attention_brain_waves_by_condition
 
 CONF = OmegaConf.load('./config.yaml')
@@ -46,7 +49,7 @@ class Message:
     def success_response(self, body: dict) -> Response:
         return jsonify({'status': 'success', 'body': body})
 
-    def error_response(self, body: dict, msg: str, tb: str = '') -> Response:
+    def error_response(self, body: dict, msg: str) -> Response:
         return jsonify({'status': 'error', 'msg': msg, 'body': body})
 
 
@@ -56,11 +59,14 @@ MSG = Message()
 @app.route('/echo', methods=['GET', 'POST'])
 def _echo():
     if request.method == 'GET':
-        return MSG.success_response(body={}), 200
+        return MSG.success_response(body={})
 
     if request.method == 'POST':
         body = request.get_json()
-        return MSG.success_response(body=body), 200
+        return MSG.success_response(body=body)
+
+    # Ensure a valid Response is returned for all code paths
+    return MSG.error_response(body={}, msg="Invalid request method"), 400
 
 
 @app.route('/event-stream', methods=['GET'])
@@ -81,66 +87,57 @@ def _predict():
     1.1. In the other word, the body is considered as READ-ONLY.
     2. The info is the running info. If everything is fine, send the info back.
     '''
+    # Fetch the input content.
     try:
         body = request.get_json()
-
-        # Fetch body with default values
-        _default = None  # 'default or None'
         info = dict(
-            org_id=body.get('org_id', _default),
-            user_id=body.get('user_id', _default),
-            project_name=body.get('project_name', _default),
-            name=body.get('name', _default),
-            brain_wave_list=body.get('brain_wave_list', _default),
-            latest_model_list=body.get('latest_model_list', _default)
+            name=body['name'],
+            org_id=body['org_id'],
+            user_id=body['user_id'],
+            project_name=body['project_name'],
+            brain_wave_list=body['brain_wave_list'],
+            latest_model_list=body['latest_model_list']
         )
-    except Exception as e:
-        import traceback
-        # 400 Bad Request
-        tb = traceback.format_exc()
-        print(tb)
-        msg = '传入数据错误'
-        return MSG.error_response(body=body, msg=msg, tb=tb), 400
+        logger.info('1. Got posted data: {}'.format(';'.join(
+            [f'{k}: {v}' for k, v in info.items() if k is not 'brain_wave_list'])))
+    except Exception as exc:
+        logger.exception(exc)
+        err = ERRORS.request_error
+        return MSG.error_response(body={}, msg=err.msg), 400
 
-    # Check if the required parameters are correct.
-    if any([v is None for k, v in info.items()]):
-        # 400 Bad Request
-        msg = '传入数据缺项'
-        return MSG.error_response(body=body, msg=msg), 400
-
-    # Everything is fine.
-    # Discard the known large ball.
-    if 'brain_wave_list' in info:
+    # Convert the brain_wave_list into numpy array.
+    try:
         brain_wave_list = info.pop('brain_wave_list')
         # Require 5s data.
-        try:
-            X = convert_predict_record_into_X(brain_wave_list)
-        except Exception as e:
-            import traceback
-            tb = traceback.format_exc()
-            print(tb)
-            # msg = f'Can not convert brain_wave_list into matrix: {brain_wave_list}'
-            msg = '脑电数据转换到矩阵时错误'
-            return MSG.error_response(body=body, msg=msg, tb=tb), 400
+        X = convert_predict_record_into_X(brain_wave_list)
+        logger.info(f'2. Got brain_wave_list -> X: {X.shape}')
+    except Exception as exc:
+        logger.exception(exc)
+        err = ERRORS.data_format_error
+        return MSG.error_response(body=body, msg=err.msg), 400
 
-    latest_model_list = info.get('latest_model_list')
-    if not isinstance(latest_model_list, list) or len(latest_model_list) == 0:
-        # 400 Bad Request
-        # msg = "Bad Request, missing available model(s)."
-        msg = '传入数据缺项'
-        return MSG.error_response(body=body, msg=msg), 400
-
-    # Incase something wrong during the predicting process.
+    # Get the model.
     try:
+        latest_model_list = info.get('latest_model_list')
         latest_model = latest_model_list[-1]
         raw_model_path = latest_model.get('model_path')
         model_path, checksum = raw_model_path.split(',')
         MM.prepare_model(model_path, checksum)
+        logger.info(f'3. Got model {model_path}:{checksum}')
+    except Exception as exc:
+        logger.exception(exc)
+        err = ERRORS.model_loading_error
+        return MSG.error_response(body=body, msg=err.msg), 400
+
+    # The predicting process.
+    try:
         pred = MM.predict(checksum, X)
         pred = str(pred)
-    except Exception as e:
-        # 500 Internal Server Error
-        return MSG.error_response(body=body, msg=f'{e}'), 500
+        logger.info(f'4. Inference has done: {pred}')
+    except Exception as exc:
+        logger.exception(exc)
+        err = ERRORS.inference_error
+        return MSG.error_response(body=body, msg=err.msg), 400
 
     # Send OK back.
     info.update(dict(pred=pred))
@@ -155,77 +152,60 @@ def _train():
     1.1. In the other word, the body is considered as READ-ONLY.
     2. The info is the running info. If everything is fine, send the info back.
     '''
+    # Fetch the input content.
     try:
         body = request.get_json()
-
-        # Fetch body with default values
-        _default = None  # 'default or None'
         info = dict(
-            org_id=body.get('org_id', _default),
-            user_id=body.get('user_id', _default),
-            project_name=body.get('project_name', _default),
-            name=body.get('name', _default),
-            # Remove by protocol change.
-            # brain_wave_list_attention=body.get(
-            #     'attention', _default),
-            # brain_wave_list_non_attention=body.get(
-            #     'non_attention', _default)
+            org_id=body['org_id'],
+            user_id=body['user_id'],
+            project_name=body['project_name'],
+            name=body['name']
         )
-    except Exception as e:
-        import traceback
-        # 400 Bad Request
-        tb = traceback.format_exc()
-        print(tb)
-        msg = '传入数据错误'
-        return MSG.error_response(body=body, msg=msg, tb=tb), 400
+        logger.info('1. Got posted data: {}'.format(';'.join(
+            [f'{k}: {v}' for k, v in info.items()])))
+    except Exception as exc:
+        logger.exception(exc)
+        err = ERRORS.request_error
+        return MSG.error_response(body={}, msg=err.msg), 400
 
-    # Check if the required parameters are correct.
-    if any([v is None for k, v in info.items()]):
-        # 400 Bad Request
-        msg = '传入数据缺项'
-        return MSG.error_response(body=body, msg=msg), 400
-
-    # Everything is fine.
-    # Discard the known large ball.
-    # if 'brain_wave_list_attention' in info and 'brain_wave_list_non_attention' in info:
-    #     d1 = info.pop('brain_wave_list_attention')
-    #     d2 = info.pop('brain_wave_list_non_attention')
-    #     assert True, 'Should not happen'
-
+    # Fetch the data and convert into nd-array
     try:
         d1 = get_attention_brain_waves_by_condition(info)
+        logger.debug(f'2.1. Got attention_brain_waves {len(d1)}')
         d2 = get_non_attention_brain_waves_by_condition(info)
-        print(info)
-        print(d1)
-        print(d2)
+        logger.debug(f'2.2. Got non_attention_brain_waves {len(d2)}')
+
         # Require 30s data.
         X_attention = convert_brain_wave_list_into_X(d1, length=30)
+        logger.debug(f'2.3. Got X_attention {X_attention.shape}')
         X_non_attention = convert_brain_wave_list_into_X(d2, length=30)
+        logger.debug(f'2.4. Got X_non_attention {X_non_attention.shape}')
 
+        # Fold the data at every 5 seconds.
         d = []
         for i in range(6):
             d.append(
                 X_attention[:, i*5*SamplingRate:(i+1)*5*SamplingRate])
         X_attention = np.array(d)
+        logger.debug(f'2.5. Converted X_attention into {X_attention.shape}')
 
         d = []
         for i in range(6):
             d.append(
                 X_non_attention[:, i*5*SamplingRate:(i+1)*5*SamplingRate])
         X_non_attention = np.array(d)
+        logger.debug(
+            f'2.6. Converted X_non_attention into {X_non_attention.shape}')
 
-        print(X_attention.shape, X_non_attention.shape)
-    except Exception as e:
-        import traceback
-        # 400 Bad Request
-        tb = traceback.format_exc()
-        print(tb)
-        msg = '脑电数据转换到矩阵时错误'
-        return MSG.error_response(body=body, msg=msg, tb=tb), 400
+        logger.info(
+            f'2. Got X_attention ({X_attention.shape}), X_non_attention ({X_non_attention})')
+    except Exception as exc:
+        logger.exception(exc)
+        err = ERRORS.data_fetching_error
+        return MSG.error_response(body=body, msg=err.msg), 400
 
-    def train_model():
-        '''Train the model.'''
-        print(info)
+    # Training process.
+    try:
         names = [info['org_id'], info['user_id'],
                  info['project_name'], info['name']]
         trained = MM.train(info, names, X_attention, X_non_attention)
@@ -235,17 +215,11 @@ def _train():
         info.update({
             'created_by': CONF.project.name
         })
-
-    # Incase something wrong during the training process.
-    try:
-        train_model()
-    except Exception as e:
-        # 400 Bad Request
-        import traceback
-        tb = traceback.format_exc()
-        print(tb)
-        msg = '模型训练错误'
-        return MSG.error_response(body=body, msg=msg, tb=tb), 400
+        logger.info(f'3. Trained model: {trained}')
+    except Exception as exc:
+        logger.exception(exc)
+        err = ERRORS.training_error
+        return MSG.error_response(body=body, msg=err.msg), 400
 
     # Send OK back.
     return MSG.success_response(body=info), 200
