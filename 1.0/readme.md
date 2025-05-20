@@ -12,3 +12,8 @@ Author: listenzcc
 
 - Create folder.
 - Create basic methods in the utilities.
+
+2025-5-20
+
+- Develop the new server.
+- The train, predict io pipelines are established.

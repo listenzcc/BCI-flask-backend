@@ -38,7 +38,7 @@ class MyReport:
     def __init__(self, directory: Path):
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
-        logger.info(f'Initialize with inventory_path: {directory}')
+        logger.info(f'Initialize with directory: {directory}')
 
     def generate_report(self, name, org_id, user_id, project_name, event):
         basename = f'{name}-{org_id}-{user_id}-{project_name}-{event}'
@@ -55,7 +55,7 @@ class MyReport:
         with open(fpath, 'w') as f:
             f.writelines([name, org_id, user_id, project_name, event])
         logger.info(f'Wrote report: {fpath}')
-        return basename, fpath
+        return dict(path=fpath.as_posix(), name=fpath.name)
 
 
 class ModelCache:
@@ -80,13 +80,13 @@ class ModelCache:
 
 
 class MyModel:
-    inventory_path: Path
+    directory: Path
     m_cache = ModelCache()
 
-    def __init__(self, inventory_path: Path):
-        self.inventory_path = Path(inventory_path)
-        self.inventory_path.mkdir(parents=True, exist_ok=True)
-        logger.info(f'Initialize with inventory_path: {inventory_path}')
+    def __init__(self, directory: Path):
+        self.directory = Path(directory)
+        self.directory.mkdir(parents=True, exist_ok=True)
+        logger.info(f'Initialize with directory: {directory}')
 
     def predict(self, checksum: str, data):
         dct = self.m_cache.get(checksum)
@@ -96,9 +96,9 @@ class MyModel:
         res = model.predict(data)
         return res
 
-    def train(self, info: dict, names: list, data: tuple) -> dict:
+    def train(self, info: dict, names: list, data: tuple, label: tuple) -> dict:
         '''
-        Train the model from X, y.
+        Train the model with data.
         Save the model into binary file.
         The model_name is generated with md5 algorithm.
         The format of the model_name is name+datetime+random.
@@ -113,13 +113,14 @@ class MyModel:
         :param info dict: the info dictionary.
         :param names list: the parts of model name.
         :param data tuple: the input data.
+        :param label tuple: the input label.
 
         :return dict: the model_path and model_name.
         '''
         logger.debug(f'Train model with {info}, {names}')
 
         model = BackendVeryNBModel()
-        model.train(data)
+        model.train(data, label)
 
         # Generate the model name.
         names.extend([datetime.now().isoformat(), random.random()])
@@ -131,7 +132,7 @@ class MyModel:
         logger.debug(f'Using file name: {filename}')
 
         # Save the model and info into binary file.
-        dst = self.inventory_path.joinpath(filename)
+        dst = self.directory.joinpath(filename)
         checksum = self.save_model(model, info, dst)
         logger.debug(f'Using checksum: {checksum}')
 

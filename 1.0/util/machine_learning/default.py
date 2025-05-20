@@ -23,11 +23,12 @@ Functions:
 # %% ---- 2025-05-19 ------------------------
 # Function and class
 class BackendVeryNBModel:
-    def train(self, data):
+    def train(self, data, label):
         '''
         Train the model
 
         :param data: The data to train the model
+        :param label: The label to train the model
 
         :return: The trained model
         '''
@@ -41,7 +42,7 @@ class BackendVeryNBModel:
 
         :return: The predicted score
         '''
-        return 1
+        return {'pred_score': 3.14, 'pred_label': 1, 'pred_prob': 0.5}
 
 
 # %% ---- 2025-05-19 ------------------------
