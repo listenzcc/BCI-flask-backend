@@ -68,6 +68,16 @@ if __name__ == '__main__':
     print(te.msg)
     print(te.name)
     print(te.code)
+    try:
+        raise RuntimeError(te)
+    except Exception as e:
+        print('Error occurred:')
+        print(e)
+        err = e.args[0]()
+        print(err)
+        print(err.msg)
+        print(err.name)
+        print(err.code)
 
 
 # %% ---- 2025-05-07 ------------------------
