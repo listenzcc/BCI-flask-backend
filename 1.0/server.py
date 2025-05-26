@@ -18,25 +18,31 @@ Functions:
 
 # %% ---- 2025-05-19 ------------------------
 # Requirements and constants
-import sys
 import time
-
-from tqdm.auto import tqdm
+from pathlib import Path
 from omegaconf import OmegaConf
 from flask import Flask, Response, request, jsonify
 
 from util.log import logger
 from util.known_errors import ERRORS
 from util.io import MyReport, MyModel
+from util.machine_learning.attention_calculator.attention_model import AttentionModel
+from util.machine_learning.model_storage.model_cache import ModelCache, ChecksumSystem
+from util.machine_learning.known_errors import TrainingError, PredictingError
 
+# db
 import db.init_connection
 from db.train_data_module.train_data_func import get_train_data
 from db.train_label_module.train_label_func import get_train_label
+from db.predict_module.predict_func import get_predict_data
 from db.model_module.model_func import get_latest_model
 
 CONF = OmegaConf.load('./config.yaml')
-MM = MyModel(CONF.model.path)
+# MM = MyModel(CONF.model.path)
+AM = AttentionModel()
 MR = MyReport(CONF.report.path)
+CS = ChecksumSystem()
+MC = ModelCache()
 
 app = Flask(__name__)
 
@@ -130,6 +136,19 @@ def _train():
 
     # Train the model
     try:
+        # Train the model
+        try:
+            model = AM.train(data, label)
+        except Exception as e:
+            logger.exception(e)
+            # If I do know the error, raise it with ec.msg.
+            # Otherwise, raise it as it is.
+            try:
+                ec: TrainingError.UnExceptedError = e.args[0]()
+            except:
+                raise e
+            return MSG.error_response(body=body, msg=ec.msg), 400
+
         info = dict(
             name=body['name'],
             org_id=body['org_id'],
@@ -137,11 +156,11 @@ def _train():
             project_name=body['project_name'],
             event=body['event']
         )
-        names = [info['org_id'], info['user_id'],
-                 info['project_name'], info['name'], info['event']]
-        trained = MM.train(info, names, data, label)
-        logger.debug(f'Trained: {trained}')
-        body.update(trained)
+        fname = CS.generate_random_filename(info)
+        dst = Path(CONF.model.path, fname)
+        checksum = CS.save_model(info, model, dst)
+        body.update({'model_path': f'{dst.as_posix()},{checksum}'})
+
         return MSG.success_response(body=body)
     except Exception as e:
         logger.exception(e)
@@ -174,34 +193,55 @@ def _predict():
         }
         latest_models = get_latest_model(**kwargs)
         model_path, checksum = latest_models[-1].split(',')
-        MM.prepare_model(model_path, checksum)
-        logger.debug(f'Loaded model: {model_path}, {checksum}')
+        model, info, checksum = CS.read_model(model_path, checksum)
+        model_record = MC.insert(model, info, checksum)
+        model = model_record['model']
     except Exception as e:
         logger.exception(e)
         return MSG.error_response(body=body, msg=ERRORS.model_loading_error), 400
 
     # TODO: Fetch data from db
-    try:
-        kwargs = {
-            'org_id': body['org_id'],
-            'user_id': body['user_id'],
-            'project_name': body['project_name'],
-            'name': body['name'],
-        }
-        data = get_train_data(**kwargs)
-    except Exception as e:
-        logger.exception(e)
-        return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
+    kwargs = {
+        'org_id': body['org_id'],
+        'user_id': body['user_id'],
+        'project_name': body['project_name'],
+        'name': body['name'],
+    }
+    for i in range(10):
+        try:
+            data = get_train_data(**kwargs)
+            label = get_predict_label(**kwargs)
+        except Exception as e:
+            logger.exception(e)
+            return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
+        try:
+            # Predict with the model
+            predicted = AM.predict(model. data, label)
+            logger.debug(f'Predicted: {predicted}')
+            body.update(predicted)
+            return MSG.success_response(body=body)
+        except Exception as e:
+            # If I don't know the error, I will raise it by breaking the for-loop.
+            try:
+                ec: PredictingError.UnExceptedError = e.args[0]()
+            except:
+                logger.exception(e)
+                break
+            # If the error is a known error, I will handle it and continue the for-loop.
+            # e.g. The label is not valid, or the data is not enough.
+            # Otherwise, I will log the error and return an error response.
+            if any([isinstance(ec, pe) for pe in (PredictingError.LabelError, PredictingError.DataStorageError)]):
+                logger.warning(
+                    f'PredictingError: {ec} in the {i}th times.')
+                time.sleep(1)
+                continue
+            else:
+                logger.exception(e)
+                return MSG.error_response(body=body, msg=ec.msg), 400
 
-    # Predict with the model
-    try:
-        predicted = MM.predict(checksum, data)
-        logger.debug(f'Predicted: {predicted}')
-        body.update(predicted)
-        return MSG.success_response(body=body)
-    except Exception as e:
-        logger.exception(e)
-        return MSG.error_response(body=body, msg=ERRORS.inference_error), 400
+    # If the for loop ends without returning, it means something went wrong
+    return MSG.error_response(body=body, msg=ERRORS.inference_error), 400
+
 # %% ---- 2025-05-19 ------------------------
 # Play ground
 
