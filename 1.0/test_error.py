@@ -23,9 +23,9 @@ from util.machine_learning.known_errors import TrainingError
 
 # %% ---- 2025-05-26 ------------------------
 # Function and class
+
 def foo():
-    1/0
-    raise RuntimeError(TrainingError.LabelError)
+    raise TrainingError.DataFormatError
 
 
 # %% ---- 2025-05-26 ------------------------
@@ -34,8 +34,11 @@ if __name__ == '__main__':
     try:
         foo()
     except Exception as e:
-        print(isinstance(e.args[0](), TrainingError.LabelError))
-        print(f'Caught an error: {e}')
+        print(e)
+        # if isinstance(e, TrainingError.DataShortageError):
+        #     print(f'TrainingError: {e.msg}')
+        # else:
+        #     print(f'Unknown error: {e}')
 
 
 # %% ---- 2025-05-26 ------------------------

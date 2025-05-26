@@ -22,55 +22,60 @@ Functions:
 
 # %% ---- 2025-05-22 ------------------------
 # Function and class
+class MyError:
+    def __init__(self):
+        super().__init__(self.name)
+
+
 class TrainingError:
-    class LabelError:
+    class LabelError(MyError, Exception):
         msg = '标签错误，标签中不包含有效类别'
         name = 'Label Error'
         code = 1411
 
-    class DataShortageError:
+    class DataShortageError(MyError, Exception):
         msg = '数据不足，无法进行训练'
         name = 'Data Shortage Error'
         code = 1412
 
-    class DataFormatError:
+    class DataFormatError(MyError, Exception):
         msg = '数据格式错误，无法根据指定标签进行训练'
         name = 'Data Format Error'
         code = 1413
 
-    class ModelError:
+    class ModelError(MyError, Exception):
         msg = '模型错误，无法进行训练'
         name = 'Model Error'
         code = 1414
 
-    class UnExceptedError:
+    class UnExceptedError(MyError, Exception):
         msg = '模型训练时遇到错误，但此错误不在已知错误列表中'
         name = 'UnExcepted Error'
         code = 1410
 
 
 class PredictingError:
-    class LabelError:
+    class LabelError(MyError, Exception):
         msg = '标签错误，标签中不包含有效类别'
         name = 'Label Error'
         code = 1511
 
-    class DataStorageError:
+    class DataShortageError(MyError, Exception):
         msg = '数据不足，无法进行预测'
         name = 'Data Storage Error'
         code = 1512
 
-    class DataFormatError:
+    class DataFormatError(MyError, Exception):
         msg = '数据格式错误，无法进行预测'
         name = 'Data Format Error'
         code = 1513
 
-    class ModelError:
+    class ModelError(MyError, Exception):
         msg = '模型错误，无法进行预测'
         name = 'Model Error'
         code = 1514
 
-    class UnExceptedError:
+    class UnExceptedError(MyError, Exception):
         msg = '模型预测时遇到错误，但此错误不在已知错误列表中'
         name = 'UnExcepted Error'
         code = 1510
@@ -79,15 +84,17 @@ class PredictingError:
 # %% ---- 2025-05-22 ------------------------
 # Play ground
 if __name__ == '__main__':
-    te = TrainingError()
-    print(te.LabelError.msg)
-    print(te.LabelError.name)
-    print(te.LabelError.code)
+    def foo():
+        raise TrainingError.DataFormatError
 
-    pe = PredictingError()
-    print(pe.LabelError.msg)
-    print(pe.LabelError.name)
-    print(pe.LabelError.code)
+    try:
+        foo()
+    except Exception as e:
+        print(e)
+        print(e.msg)
+        print(e.name)
+        print(e.code)
+        raise e
 
 # %% ---- 2025-05-22 ------------------------
 # Pending

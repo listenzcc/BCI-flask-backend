@@ -141,13 +141,12 @@ def _train():
             model = AM.train(data, label)
         except Exception as e:
             logger.exception(e)
-            # If I do know the error, raise it with ec.msg.
+            # If I do know the error, raise it with e.msg.
             # Otherwise, raise it as it is.
             try:
-                ec: TrainingError.UnExceptedError = e.args[0]()
+                return MSG.error_response(body=body, msg=e.msg), 400
             except:
                 raise e
-            return MSG.error_response(body=body, msg=ec.msg), 400
 
         info = dict(
             name=body['name'],
@@ -221,23 +220,20 @@ def _predict():
             body.update(predicted)
             return MSG.success_response(body=body)
         except Exception as e:
-            # If I don't know the error, I will raise it by breaking the for-loop.
-            try:
-                ec: PredictingError.UnExceptedError = e.args[0]()
-            except:
-                logger.exception(e)
-                break
             # If the error is a known error, I will handle it and continue the for-loop.
             # e.g. The label is not valid, or the data is not enough.
             # Otherwise, I will log the error and return an error response.
-            if any([isinstance(ec, pe) for pe in (PredictingError.LabelError, PredictingError.DataStorageError)]):
-                logger.warning(
-                    f'PredictingError: {ec} in the {i}th times.')
+            logger.exception(e)
+            if any([isinstance(e, pe) for pe in (PredictingError.LabelError, PredictingError.DataShortageError)]):
+                logger.error(
+                    f'PredictingError: {e} in the {i}th times.')
                 time.sleep(1)
                 continue
             else:
-                logger.exception(e)
-                return MSG.error_response(body=body, msg=ec.msg), 400
+                try:
+                    return MSG.error_response(body=body, msg=e.msg), 400
+                except:
+                    break
 
     # If the for loop ends without returning, it means something went wrong
     return MSG.error_response(body=body, msg=ERRORS.inference_error), 400
