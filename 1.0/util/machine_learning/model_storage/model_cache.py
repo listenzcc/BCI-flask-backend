@@ -49,6 +49,7 @@ class ChecksumSystem:
         Compute a checksum for the model info.
         '''
         dst = Path(dst)
+        dst.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump({'model': model, 'info': info}, dst)
         h = hashlib.new('sha256')
         h.update(open(dst, 'rb').read())

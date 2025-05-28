@@ -18,6 +18,7 @@ Functions:
 
 # %% ---- 2025-05-19 ------------------------
 # Requirements and constants
+import sys
 import time
 from pathlib import Path
 from omegaconf import OmegaConf
@@ -111,7 +112,7 @@ def _train():
     # Get the request body
     # Check the request body
     try:
-        required_keys = ['name', 'org_id', 'user_id', 'project_name', 'event']
+        required_keys = ['name', 'org_id', 'user_id', 'project_name']
         body = request.get_json()
         logger.debug(f'body: {body}')
         assert all(key in body
@@ -153,12 +154,21 @@ def _train():
             org_id=body['org_id'],
             user_id=body['user_id'],
             project_name=body['project_name'],
-            event=body['event']
         )
         fname = CS.generate_random_filename(info)
         dst = Path(CONF.model.path, fname)
         checksum = CS.save_model(info, model, dst)
-        body.update({'model_path': f'{dst.as_posix()},{checksum}'})
+        body.update({'model_path': f'{dst.as_posix()},{checksum}',
+                    'model_name': model['name']})
+
+        {
+            'name': 'name',
+            'org_id': 'orgId',
+            'user_id': 'userId',
+            'project_name': 'projectName',
+            'model_path': 'modelPath,CheckSum',
+            'model_name': 'modelName'
+        }
 
         return MSG.success_response(body=body)
     except Exception as e:
@@ -173,7 +183,7 @@ def _predict():
     # Check the request body
     try:
         required_keys = ['name', 'org_id', 'user_id',
-                         'project_name', 'event', 'type']
+                         'project_name', 'label_content']
         body = request.get_json()
         logger.debug(f'body: {body}')
         assert all(key in body
@@ -188,7 +198,6 @@ def _predict():
             'org_id': body['org_id'],
             'user_id': body['user_id'],
             'project_name': body['project_name'],
-            'type': body['type'],
         }
         latest_models = get_latest_model(**kwargs)
         model_path, checksum = latest_models[-1].split(',')
@@ -206,41 +215,53 @@ def _predict():
         'project_name': body['project_name'],
         'name': body['name'],
     }
+
+    # Require label once
+    label = body['label_content']
+    print('**** label ****')
+    print(label)
+    # try:
+    #     label = get_predict_label(**kwargs)
+    # except Exception as e:
+    #     logger.exception(e)
+    #     return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
+
+    # Try maximum 10 times for data when the data is not enough
     for i in range(10):
         try:
-            data = get_train_data(**kwargs)
-            label = get_predict_label(**kwargs)
+            data = get_predict_data(**kwargs)
         except Exception as e:
             logger.exception(e)
             return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
         try:
             # Predict with the model
-            predicted = AM.predict(model. data, label)
+            predicted = AM.predict(model, data, label)
             logger.debug(f'Predicted: {predicted}')
             body.update(predicted)
+
             return MSG.success_response(body=body)
+        except PredictingError.DataShortageError:
+            time.sleep(1)
+            continue
         except Exception as e:
-            # If the error is a known error, I will handle it and continue the for-loop.
-            # e.g. The label is not valid, or the data is not enough.
-            # Otherwise, I will log the error and return an error response.
             logger.exception(e)
-            if any([isinstance(e, pe) for pe in (PredictingError.LabelError, PredictingError.DataShortageError)]):
-                logger.error(
-                    f'PredictingError: {e} in the {i}th times.')
-                time.sleep(1)
-                continue
-            else:
-                try:
-                    return MSG.error_response(body=body, msg=e.msg), 400
-                except:
-                    break
+            try:
+                return MSG.error_response(body=body, msg=e.msg), 400
+            except:
+                break
 
     # If the for loop ends without returning, it means something went wrong
     return MSG.error_response(body=body, msg=ERRORS.inference_error), 400
 
+
 # %% ---- 2025-05-19 ------------------------
 # Play ground
-
+if __name__ == "__main__":
+    # Main entry point for debug.
+    # Use run_wsgi.ps1 for production usage.
+    host = CONF.connection.host
+    port = CONF.connection.port
+    sys.exit(app.run(host=host, port=port, debug=True))
 
 # %% ---- 2025-05-19 ------------------------
 # Pending
