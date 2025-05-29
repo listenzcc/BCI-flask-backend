@@ -53,11 +53,13 @@ app = Flask(__name__)
 
 class Message:
     def success_response(self, body: dict) -> Response:
+        logger.debug(f'Response success: {body}')
         return jsonify({'status': 'success', 'body': body})
 
     def error_response(self, body: dict, msg: str) -> Response:
         if isinstance(msg, ERRORS):
             msg = msg.msg
+        logger.error(f'Response error: {msg}, {body}')
         return jsonify({'status': 'error', 'msg': msg, 'body': body})
 
 
@@ -142,12 +144,7 @@ def _train():
             model = AM.train(data, label)
         except Exception as e:
             logger.exception(e)
-            # If I do know the error, raise it with e.msg.
-            # Otherwise, raise it as it is.
-            try:
-                return MSG.error_response(body=body, msg=e.msg), 400
-            except:
-                raise e
+            raise e
 
         info = dict(
             name=body['name'],
@@ -245,10 +242,7 @@ def _predict():
             continue
         except Exception as e:
             logger.exception(e)
-            try:
-                return MSG.error_response(body=body, msg=e.msg), 400
-            except:
-                break
+            break
 
     # If the for loop ends without returning, it means something went wrong
     return MSG.error_response(body=body, msg=ERRORS.inference_error), 400
