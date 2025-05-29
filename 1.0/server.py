@@ -205,47 +205,46 @@ def _predict():
         logger.exception(e)
         return MSG.error_response(body=body, msg=ERRORS.model_loading_error), 400
 
-    # TODO: Fetch data from db
-    kwargs = {
-        'org_id': body['org_id'],
-        'user_id': body['user_id'],
-        'project_name': body['project_name'],
-        'name': body['name'],
-    }
+    try:
+        # TODO: Fetch data from db
+        kwargs = {
+            'org_id': body['org_id'],
+            'user_id': body['user_id'],
+            'project_name': body['project_name'],
+            'name': body['name'],
+        }
 
-    # Require label once
-    label = body['label_content']
-    print('**** label ****')
-    print(label)
-    # try:
-    #     label = get_predict_label(**kwargs)
-    # except Exception as e:
-    #     logger.exception(e)
-    #     return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
+        # Require label once
+        label = body['label_content']
+        print('**** label ****')
+        print(label)
+        # try:
+        #     label = get_predict_label(**kwargs)
+        # except Exception as e:
+        #     logger.exception(e)
+        #     return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
 
-    # Try maximum 10 times for data when the data is not enough
-    for i in range(10):
-        try:
-            data = get_predict_data(**kwargs)
-        except Exception as e:
-            logger.exception(e)
-            return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
-        try:
-            # Predict with the model
-            predicted = AM.predict(model, data, label)
-            logger.debug(f'Predicted: {predicted}')
-            body.update(predicted)
+        # Try maximum 10 times for data when the data is not enough
+        for i in range(10):
+            try:
+                data = get_predict_data(**kwargs)
+            except Exception as e:
+                logger.exception(e)
+                return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
+            try:
+                # Predict with the model
+                predicted = AM.predict(model, data, label)
+                logger.debug(f'Predicted: {predicted}')
+                body.update(predicted)
 
-            return MSG.success_response(body=body)
-        except PredictingError.DataShortageError:
-            time.sleep(1)
-            continue
-        except Exception as e:
-            logger.exception(e)
-            break
-
-    # If the for loop ends without returning, it means something went wrong
-    return MSG.error_response(body=body, msg=ERRORS.inference_error), 400
+                return MSG.success_response(body=body)
+            except PredictingError.DataShortageError:
+                time.sleep(1)
+                continue
+    except Exception as e:
+        logger.exception(e)
+        # If the for loop ends without returning, it means something went wrong
+        return MSG.error_response(body=body, msg=ERRORS.inference_error), 400
 
 
 # %% ---- 2025-05-19 ------------------------
