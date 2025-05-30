@@ -19,6 +19,8 @@ Functions:
 # %% ---- 2025-05-28 ------------------------
 # Requirements and constants
 import json
+import joblib
+import numpy as np
 from rich import print
 from pathlib import Path
 
@@ -41,6 +43,32 @@ predicting_data = json.load(
 predicting_result = json.load(
     open('./example/game00000001_11_5448_1747645799760/predict_result.json'))['message']
 
+# %%
+
+obj = joblib.load('./example/train.dump')
+training_data1 = obj['data']
+training_label1 = obj['label']
+
+# %%
+lst = [e['data'] for e in training_data]
+d = np.concatenate(lst, axis=1)
+print(d.shape)
+
+lst = [e['data'] for e in training_data1]
+d = np.concatenate(lst, axis=1)
+print(d.shape)
+
+# %%
+np.array(training_data[1]['data']).shape
+# %%
+print('example')
+print(training_data)
+
+# %%
+print('real')
+print(training_data1)
+
+
 # %% ---- 2025-05-28 ------------------------
 # Play ground
 
@@ -48,6 +76,12 @@ predicting_result = json.load(
 print('**** Train model ****')
 model = AM.train(training_data, training_label)
 print(model)
+
+print('**** Train model ****')
+model = AM.train(training_data1, training_label1)
+print(model)
+
+# %%
 
 # Save model
 print('**** Save model ****')

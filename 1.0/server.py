@@ -135,6 +135,8 @@ def _train():
         }
         data = get_train_data(**query_kwargs)
         label = get_train_label(**query_kwargs)
+        print('data', data)
+        print('label', label)
         DS.dump_variables('train.dump', data=data, label=label,
                           body=body, query=query_kwargs)
     except Exception as e:
