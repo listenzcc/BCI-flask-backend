@@ -52,21 +52,11 @@ training_label1 = obj['label']
 # %%
 lst = [e['data'] for e in training_data]
 d = np.concatenate(lst, axis=1)
-print(d.shape)
+print('example', d.shape)
 
 lst = [e['data'] for e in training_data1]
 d = np.concatenate(lst, axis=1)
-print(d.shape)
-
-# %%
-np.array(training_data[1]['data']).shape
-# %%
-print('example')
-print(training_data)
-
-# %%
-print('real')
-print(training_data1)
+print('real', d.shape)
 
 
 # %% ---- 2025-05-28 ------------------------
