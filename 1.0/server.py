@@ -26,7 +26,7 @@ from flask import Flask, Response, request, jsonify
 
 from util.log import logger
 from util.known_errors import ERRORS
-from util.io import MyReport, MyModel
+from util.io import MyReport, DirSystem
 from util.machine_learning.attention_calculator.attention_model import AttentionModel
 from util.machine_learning.model_storage.model_cache import ModelCache, ChecksumSystem
 from util.machine_learning.known_errors import TrainingError, PredictingError
@@ -39,11 +39,13 @@ from db.predict_module.predict_func import get_predict_data
 from db.model_module.model_func import get_latest_model
 
 CONF = OmegaConf.load('./config.yaml')
-# MM = MyModel(CONF.model.path)
-AM = AttentionModel()
-MR = MyReport(CONF.report.path)
+DS = DirSystem()
+DS.load_config(CONF)
+MR = MyReport(DS.report_dir)
 CS = ChecksumSystem()
 MC = ModelCache()
+
+AM = AttentionModel()
 
 app = Flask(__name__)
 
@@ -123,16 +125,18 @@ def _train():
         logger.exception(e)
         return MSG.error_response(body={}, msg=ERRORS.request_error), 400
 
-    # TODO: Fetch data from db
+    # Fetch data from db
     try:
-        kwargs = {
+        query_kwargs = {
             'org_id': body['org_id'],
             'user_id': body['user_id'],
             'project_name': body['project_name'],
             'name': body['name'],
         }
-        data = get_train_data(**kwargs)
-        label = get_train_label(**kwargs)
+        data = get_train_data(**query_kwargs)
+        label = get_train_label(**query_kwargs)
+        DS.dump_variables('train.dump', data=data, label=label,
+                          body=body, query=query_kwargs)
     except Exception as e:
         logger.exception(e)
         return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
@@ -153,7 +157,7 @@ def _train():
             project_name=body['project_name'],
         )
         fname = CS.generate_random_filename(info)
-        dst = Path(CONF.model.path, fname)
+        dst = Path(DS.model_dir, fname)
         checksum = CS.save_model(info, model, dst)
         body.update({'model_path': f'{dst.as_posix()},{checksum}',
                     'model_name': model['name']})
@@ -191,12 +195,14 @@ def _predict():
 
     # Find the model
     try:
-        kwargs = {
+        query_kwargs = {
             'org_id': body['org_id'],
             'user_id': body['user_id'],
             'project_name': body['project_name'],
         }
-        latest_models = get_latest_model(**kwargs)
+        latest_models = get_latest_model(**query_kwargs)
+        DS.dump_variables(
+            'predict.dump', query_kwargs=query_kwargs, latest_models=latest_models)
         model_path, checksum = latest_models[-1].split(',')
         model, info, checksum = CS.read_model(model_path, checksum)
         model_record = MC.insert(model, info, checksum)
@@ -206,7 +212,6 @@ def _predict():
         return MSG.error_response(body=body, msg=ERRORS.model_loading_error), 400
 
     try:
-        # TODO: Fetch data from db
         kwargs = {
             'org_id': body['org_id'],
             'user_id': body['user_id'],
@@ -216,14 +221,8 @@ def _predict():
 
         # Require label once
         label = body['label_content']
-        print('**** label ****')
-        print(label)
-        # try:
-        #     label = get_predict_label(**kwargs)
-        # except Exception as e:
-        #     logger.exception(e)
-        #     return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
 
+        # Fetch data from db
         # Try maximum 10 times for data when the data is not enough
         for i in range(10):
             try:

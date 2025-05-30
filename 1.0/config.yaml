@@ -1,12 +1,16 @@
 project:
   name: "BCI flask backend"
+  dir: "D:/BCIProject"
 
 connection:
   host: localhost
   port: 7384
 
 model:
-  path: "D:/BCIProject/model"
+  subdir: "model"
 
 report:
-  path: "D:/BCIProject/report"
+  subdir: "report"
+
+dumps:
+  subdir: "dumps"

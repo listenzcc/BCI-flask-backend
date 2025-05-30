@@ -12,7 +12,7 @@ class ModelCache:
     '''Model cache for rapidly predicting.'''
     buffer = {}
 
-    @logger.catch
+    @logger.catch(reraise=True)
     def insert(self, model, info, checksum: str):
         if checksum not in self.buffer:
             self.buffer[checksum] = {
@@ -25,7 +25,7 @@ class ModelCache:
             logger.debug(f'Cache hit: {checksum}')
         return self.buffer[checksum]
 
-    @logger.catch
+    @logger.catch(reraise=True)
     def get(self, checksum: str):
         assert checksum in self.buffer, f'No model found with checksum: {checksum}'
         return self.buffer[checksum]
@@ -34,6 +34,7 @@ class ModelCache:
 class ChecksumSystem:
     '''Checksum system for model storage.'''
 
+    @logger.catch(reraise=True)
     def generate_random_filename(self, info: dict) -> str:
         '''Generate a checksum for the model info.'''
         t = time.time()
@@ -43,6 +44,7 @@ class ChecksumSystem:
         filename = f'{checksum}.model'
         return filename
 
+    @logger.catch(reraise=True)
     def save_model(self, info: dict, model: Any, dst: Path):
         '''
         Save the model.
@@ -57,6 +59,7 @@ class ChecksumSystem:
         logger.info(f'Model saved to {dst}, checksum: {checksum}')
         return checksum
 
+    @logger.catch(reraise=True)
     def read_model(self, model_path: Path, checksum: str) -> Tuple[dict, dict, str]:
         '''
         Prepare the model and info.
