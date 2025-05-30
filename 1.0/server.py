@@ -54,15 +54,19 @@ app = Flask(__name__)
 
 
 class Message:
+    @logger.catch
     def success_response(self, body: dict) -> Response:
         logger.debug(f'Response success: {body}')
         return jsonify({'status': 'success', 'body': body})
 
+    @logger.catch
     def error_response(self, body: dict, msg: str) -> Response:
-        if isinstance(msg, ERRORS):
+        try:
             msg = msg.msg
+        except:
+            pass
         logger.error(f'Response error: {msg}, {body}')
-        return jsonify({'status': 'error', 'msg': msg, 'body': body})
+        return jsonify({'status': 'error', 'msg': str(msg), 'body': str(body)})
 
 
 MSG = Message()
