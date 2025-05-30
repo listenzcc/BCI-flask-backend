@@ -36,7 +36,7 @@ import db.init_connection
 from db.train_data_module.train_data_func import get_train_data
 from db.train_label_module.train_label_func import get_train_label
 from db.predict_module.predict_func import get_predict_data
-from db.model_module.model_func import get_latest_model
+from db.model_module.model_func import get_latest_model, get_model
 
 CONF = OmegaConf.load('./config.yaml')
 DS = DirSystem()
@@ -206,7 +206,7 @@ def _predict():
             'user_id': body['user_id'],
             'project_name': body['project_name'],
         }
-        latest_models = get_latest_model(**query_kwargs)
+        latest_models = get_model(**query_kwargs)
         DS.dump_variables(
             'predict.dump', query_kwargs=query_kwargs, latest_models=latest_models)
         model_path, checksum = latest_models[-1].split(',')
@@ -240,7 +240,16 @@ def _predict():
                 # Predict with the model
                 predicted = AM.predict(model, data, label)
                 logger.debug(f'Predicted: {predicted}')
-                body.update(predicted)
+                body.update({'pred': predicted})
+                body.pop('label_content')
+
+                {
+                    'name': 'name',
+                    'org_id': 'orgId',
+                    'user_id': 'userId',
+                    'project_name': 'projectName',
+                    'pred': 'pred'
+                }
 
                 return MSG.success_response(body=body)
             except PredictingError.DataShortageError:
