@@ -139,10 +139,6 @@ def _train():
         }
         data = get_train_data(**query_kwargs)
         label = get_train_label(**query_kwargs)
-        print('data', data)
-        print('label', label)
-        DS.dump_variables('train.dump', data=data, label=label,
-                          body=body, query=query_kwargs)
     except Exception as e:
         logger.exception(e)
         return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
@@ -180,6 +176,8 @@ def _train():
         return MSG.success_response(body=body)
     except Exception as e:
         logger.exception(e)
+        DS.dump_variables('train-dump', data=data, label=label,
+                          body=body, query=query_kwargs, error=f'{e}')
         return MSG.error_response(body=body, msg=ERRORS.training_error), 400
 
 
@@ -207,8 +205,6 @@ def _predict():
             'project_name': body['project_name'],
         }
         latest_models = get_model(**query_kwargs)
-        DS.dump_variables(
-            'predict.dump', query_kwargs=query_kwargs, latest_models=latest_models)
         model_path, checksum = latest_models[-1].split(',')
         model, info, checksum = CS.read_model(model_path, checksum)
         model_record = MC.insert(model, info, checksum)
@@ -255,8 +251,11 @@ def _predict():
             except PredictingError.DataShortageError:
                 time.sleep(1)
                 continue
+        raise PredictingError.ExceedMaximumPredictingTimes
     except Exception as e:
         logger.exception(e)
+        DS.dump_variables('predict-dump', data=data, label=label,
+                          body=body, query=query_kwargs, latest_models=latest_models, error=f'{e}')
         # If the for loop ends without returning, it means something went wrong
         return MSG.error_response(body=body, msg=ERRORS.inference_error), 400
 

@@ -48,6 +48,11 @@ class TrainingError:
         name = 'Model Error'
         code = 1414
 
+    class DataLabelMissMatch(MyError, Exception):
+        msg = '数据与标签失匹配'
+        name = 'Data & Label Miss Match Error'
+        code = 1415
+
     class UnExceptedError(MyError, Exception):
         msg = '模型训练时遇到错误，但此错误不在已知错误列表中'
         name = 'UnExcepted Error'
@@ -74,6 +79,16 @@ class PredictingError:
         msg = '模型错误，无法进行预测'
         name = 'Model Error'
         code = 1514
+
+    class ExceedMaximumPredictingTimes(MyError, Exception):
+        msg = '模型预测时尝试的次数超过阈值'
+        name = 'Exceed Maximum Predicting Times Error'
+        code = 1515
+
+    class DataLabelMissMatch(MyError, Exception):
+        msg = '数据与标签失匹配'
+        name = 'Data & Label Miss Match Error'
+        code = 1516
 
     class UnExceptedError(MyError, Exception):
         msg = '模型预测时遇到错误，但此错误不在已知错误列表中'
