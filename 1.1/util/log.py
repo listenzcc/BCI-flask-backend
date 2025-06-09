@@ -23,8 +23,23 @@ from loguru import logger
 
 # %% ---- 2025-05-07 ------------------------
 # Function and class
-logger.add('log/info.log', level='INFO', rotation='5 MB')
-logger.add('log/debug.log', level='DEBUG', rotation='5 MB')
+logger.add('log/debug.log',
+           level='DEBUG',
+           rotation='5 MB',
+           retention="2 days",
+           enqueue=True,
+           backtrace=True,
+           diagnose=True,
+           compression="zip")
+
+logger.add('log/info.log',
+           level='INFO',
+           rotation='5 MB',
+           retention="2 days",
+           enqueue=True,
+           backtrace=True,
+           diagnose=True,
+           compression="zip")
 
 
 # %% ---- 2025-05-07 ------------------------
