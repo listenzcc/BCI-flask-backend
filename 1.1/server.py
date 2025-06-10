@@ -182,6 +182,43 @@ def _train():
         return MSG.error_response(body=body, msg=ERRORS.training_error), 400
 
 
+@app.route('/report', methods=['POST'])
+def _report():
+    '''Generate the report'''
+    # Get the request body
+    # Check the request body
+    try:
+        required_keys = ['name', 'org_id', 'user_id',
+                         'project_name', 'label_content']
+        body = request.get_json()
+        logger.debug(f'body: {body}')
+        assert all(key in body
+                   for key in required_keys), 'Missing keys in request body'
+    except Exception as e:
+        logger.exception(e)
+        return MSG.error_response(body={}, msg=ERRORS.request_error), 400
+
+    # TODO: Request data
+
+    # Generate report
+    checksum = 'abcdefg'
+    dst = Path('abcdefg.pdf')
+    name = 'abcdefg report'
+    body.update({'report_path': f'{dst.as_posix()},{checksum}',
+                'report_name': name+f'.{time.time()}'})
+
+    {
+        'name': 'name',
+        'org_id': 'orgId',
+        'user_id': 'userId',
+        'project_name': 'projectName',
+        'report_path': 'reportPath,CheckSum',
+        'report_name': 'reportName'
+    }
+
+    return MSG.success_response(body=body)
+
+
 @app.route('/predict', methods=['POST'])
 def _predict():
     '''Predict with the model'''
