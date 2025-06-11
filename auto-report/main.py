@@ -27,8 +27,8 @@ from reportlab.lib.styles import getSampleStyleSheet  # 文本样式
 from reportlab.lib import colors  # 颜色模块
 from reportlab.lib.units import cm, inch  # 单位：cm, inch
 
-from plot.conversion import fig_to_bytes
-from plot.random_fig import mk_random_fig
+from util.conversion import fig_to_bytes
+from util.random_fig import mk_random_fig
 
 from util.generator import PDFGenerator
 
