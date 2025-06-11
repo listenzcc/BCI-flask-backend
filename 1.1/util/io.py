@@ -51,7 +51,7 @@ class DirSystem:
         return dir
 
     @logger.catch
-    def dump_variables(self, dump_name: str, **kwargs):
+    def dump_variables(self, dump_name: str, dump_body: dict):
         from datetime import datetime
         import random
         day = datetime.now().strftime('%Y%m%d')
@@ -59,10 +59,9 @@ class DirSystem:
         path = self.dumps_dir.joinpath(
             f'{day}', f'{dump_name}.{detail}-{random.random():0.8f}.dump')
         path.parent.mkdir(parents=True, exist_ok=True)
-        body = {k: v for k, v in kwargs.items()}
-        joblib.dump(body, path)
-        logger.debug(f'Dump variables: {list(body.keys())} -> {path}')
-        return body
+        joblib.dump(dump_body, path)
+        logger.debug(f'Dump variables: {list(dump_body.keys())} -> {path}')
+        return dump_body
 
 
 class MyReport:

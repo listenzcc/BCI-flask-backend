@@ -22,6 +22,7 @@ Functions:
 
 # %% ---- 2025-05-07 ------------------------
 # Function and class
+
 class ERRORS:
     class request_error:
         msg = '参数缺失、格式错误或无效请求'

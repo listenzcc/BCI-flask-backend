@@ -20,6 +20,7 @@ Functions:
 # Requirements and constants
 import sys
 import time
+import contextlib
 from pathlib import Path
 from omegaconf import OmegaConf
 from flask import Flask, Response, request, jsonify
@@ -30,6 +31,8 @@ from util.io import MyReport, DirSystem
 from util.machine_learning.attention_calculator.attention_model import AttentionModel
 from util.machine_learning.model_storage.model_cache import ModelCache, ChecksumSystem
 from util.machine_learning.known_errors import TrainingError, PredictingError
+
+from typing import Union
 
 # db
 import db.init_connection
@@ -54,17 +57,11 @@ app = Flask(__name__)
 
 
 class Message:
-    @logger.catch
     def success_response(self, body: dict) -> Response:
         logger.debug(f'Response success: {body}')
         return jsonify({'status': 'success', 'body': body})
 
-    @logger.catch
     def error_response(self, body: dict, msg: str) -> Response:
-        try:
-            msg = msg.msg
-        except:
-            pass
         logger.error(f'Response error: {msg}, {body}')
         return jsonify({'status': 'error', 'msg': str(msg), 'body': str(body)})
 
@@ -89,7 +86,7 @@ def _echo():
 
 
 @app.route('/report', methods=['POST'])
-def _report():
+def _report_deprecated():
     '''Generate a report'''
     # Get the request body
     # Check the request body
@@ -101,7 +98,7 @@ def _report():
                    for key in required_keys), 'Missing keys in request body'
     except Exception as e:
         logger.exception(e)
-        return MSG.error_response(body={}, msg=ERRORS.request_error), 400
+        return MSG.error_response(body={}, msg=ERRORS.request_error.msg), 400
 
     # Generate the report
     try:
@@ -111,7 +108,7 @@ def _report():
         return MSG.success_response(body=body)
     except Exception as e:
         logger.exception(e)
-        return MSG.error_response(body=body, msg=ERRORS.report_error), 400
+        return MSG.error_response(body=body, msg=ERRORS.report_error.msg), 400
 
 
 @app.route('/train', methods=['POST'])
@@ -127,7 +124,7 @@ def _train():
                    for key in required_keys), 'Missing keys in request body'
     except Exception as e:
         logger.exception(e)
-        return MSG.error_response(body={}, msg=ERRORS.request_error), 400
+        return MSG.error_response(body={}, msg=ERRORS.request_error.msg), 400
 
     # Fetch data from db
     try:
@@ -141,7 +138,7 @@ def _train():
         label = get_train_label(**query_kwargs)
     except Exception as e:
         logger.exception(e)
-        return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
+        return MSG.error_response(body=body, msg=ERRORS.data_fetching_error.msg), 400
 
     # Train the model
     try:
@@ -165,7 +162,7 @@ def _train():
         body.update({'model_path': f'{dst.as_posix()},{checksum}',
                     'model_name': model['name']+f'.{time.time()}'})
 
-        {
+        __output_example = {
             'name': 'name',
             'org_id': 'orgId',
             'user_id': 'userId',
@@ -177,9 +174,15 @@ def _train():
         return MSG.success_response(body=body)
     except Exception as e:
         logger.exception(e)
-        DS.dump_variables('train-dump', data=data, label=label,
-                          body=body, query=query_kwargs, error=f'{e}')
-        return MSG.error_response(body=body, msg=ERRORS.training_error), 400
+        dump_body = dict(
+            data=data,
+            label=label,
+            body=body,
+            query=query_kwargs,
+            error=f'{e}'
+        )
+        DS.dump_variables('train-dump', dump_body)
+        return MSG.error_response(body=body, msg=ERRORS.training_error.msg), 400
 
 
 @app.route('/report', methods=['POST'])
@@ -195,7 +198,7 @@ def _report():
                    for key in required_keys), 'Missing keys in request body'
     except Exception as e:
         logger.exception(e)
-        return MSG.error_response(body={}, msg=ERRORS.request_error), 400
+        return MSG.error_response(body={}, msg=ERRORS.request_error.msg), 400
 
     # TODO: Request data
 
@@ -206,7 +209,7 @@ def _report():
     body.update({'report_path': f'{dst.as_posix()},{checksum}',
                 'report_name': name+f'.{time.time()}'})
 
-    {
+    __output_example = {
         'name': 'name',
         'org_id': 'orgId',
         'user_id': 'userId',
@@ -232,7 +235,7 @@ def _predict():
                    for key in required_keys), 'Missing keys in request body'
     except Exception as e:
         logger.exception(e)
-        return MSG.error_response(body={}, msg=ERRORS.request_error), 400
+        return MSG.error_response(body={}, msg=ERRORS.request_error.msg), 400
 
     # Find the model
     try:
@@ -249,10 +252,12 @@ def _predict():
         model = model_record['model']
     except Exception as e:
         logger.exception(e)
-        return MSG.error_response(body=body, msg=ERRORS.model_loading_error), 400
+        return MSG.error_response(body=body, msg=ERRORS.model_loading_error.msg), 400
 
+    data = None
+    label = None
     try:
-        kwargs = {
+        dump_body = {
             'org_id': body['org_id'],
             'user_id': body['user_id'],
             'project_name': body['project_name'],
@@ -266,10 +271,9 @@ def _predict():
         # Try maximum 10 times for data when the data is not enough
         for i in range(10):
             try:
-                data = get_predict_data(**kwargs)
+                data = get_predict_data(**dump_body)
             except Exception as e:
-                logger.exception(e)
-                return MSG.error_response(body=body, msg=ERRORS.data_fetching_error), 400
+                return MSG.error_response(body=body, msg=ERRORS.data_fetching_error.msg), 400
             try:
                 # Predict with the model
                 predicted = AM.predict(model, data, label)
@@ -277,7 +281,7 @@ def _predict():
                 body.update({'pred': predicted})
                 body.pop('label_content')
 
-                {
+                __output_example = {
                     'name': 'name',
                     'org_id': 'orgId',
                     'user_id': 'userId',
@@ -292,10 +296,19 @@ def _predict():
         raise PredictingError.ExceedMaximumPredictingTimes
     except Exception as e:
         logger.exception(e)
-        DS.dump_variables('predict-dump', data=data, label=label,
-                          body=body, query=query_kwargs, latest_models=latest_models, error=f'{e}')
-        # If the for loop ends without returning, it means something went wrong
-        return MSG.error_response(body=body, msg=ERRORS.inference_error), 400
+
+        dump_body = dict(
+            data=data,
+            label=label,
+            body=body,
+            query_kwargs=query_kwargs,
+            latest_models=latest_models,
+            error=f'{e}'
+        )
+
+        DS.dump_variables('predict-dump', dump_body)
+
+        return MSG.error_response(body=body, msg=ERRORS.inference_error.msg), 400
 
 
 # %% ---- 2025-05-19 ------------------------
