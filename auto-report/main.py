@@ -25,7 +25,7 @@ from reportlab.platypus import Table, SimpleDocTemplate, Paragraph, Image  # 报
 from reportlab.lib.pagesizes import letter  # 页面的标志尺寸(8.5*inch, 11*inch)
 from reportlab.lib.styles import getSampleStyleSheet  # 文本样式
 from reportlab.lib import colors  # 颜色模块
-from reportlab.lib.units import cm, inch  # 单位：cm, inch
+from reportlab.lib.units import inch  # 单位：cm, inch
 
 from util.conversion import fig_to_bytes
 from util.random_fig import mk_random_fig
