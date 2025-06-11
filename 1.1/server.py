@@ -188,8 +188,7 @@ def _report():
     # Get the request body
     # Check the request body
     try:
-        required_keys = ['name', 'org_id', 'user_id',
-                         'project_name', 'label_content']
+        required_keys = ['name', 'org_id', 'user_id', 'project_name']
         body = request.get_json()
         logger.debug(f'body: {body}')
         assert all(key in body

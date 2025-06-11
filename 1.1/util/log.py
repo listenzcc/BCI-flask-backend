@@ -19,23 +19,21 @@ Functions:
 # %% ---- 2025-05-07 ------------------------
 # Requirements and constants
 from loguru import logger
+from datetime import datetime
 
+t = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
 
 # %% ---- 2025-05-07 ------------------------
 # Function and class
-logger.add('log/debug.log',
+logger.add(f'log/debug.{t}.log',
            level='DEBUG',
-           rotation='5 MB',
-           retention="2 days",
            enqueue=True,
            backtrace=True,
            diagnose=True,
            compression="zip")
 
-logger.add('log/info.log',
+logger.add(f'log/info.{t}.log',
            level='INFO',
-           rotation='5 MB',
-           retention="2 days",
            enqueue=True,
            backtrace=True,
            diagnose=True,
