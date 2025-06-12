@@ -20,35 +20,45 @@ Functions:
 # Requirements and constants
 import sys
 import time
-import contextlib
+
+from flask import Flask, Response, request, jsonify
 from pathlib import Path
 from omegaconf import OmegaConf
-from flask import Flask, Response, request, jsonify
 
+# Local util
+from util.io import MyReport, DirSystem
 from util.log import logger
 from util.known_errors import ERRORS
-from util.io import MyReport, DirSystem
-from util.machine_learning.attention_calculator.attention_model import AttentionModel
-from util.machine_learning.model_storage.model_cache import ModelCache, ChecksumSystem
+
+# Machine learning
 from util.machine_learning.known_errors import TrainingError, PredictingError
+from util.machine_learning.model_storage.model_cache import ModelCache, ChecksumSystem
+from util.machine_learning.tellme_which_model_to_use import tellme_predict_model, tellme_train_model
+from util.machine_learning.attention_calculator.attention_model import AttentionModel
 
-from typing import Union
+# Auto report
+from util.auto_report.main import generate_report
 
-# db
-import db.init_connection
-from db.train_data_module.train_data_func import get_train_data
-from db.train_label_module.train_label_func import get_train_label
-from db.predict_module.predict_func import get_predict_data
-from db.model_module.model_func import get_latest_model, get_model
+# Local db
+try:
+    import db.init_connection
+    from db.model_module.model_func import get_latest_model, get_model
+    from db.predict_module.predict_func import get_predict_data
+    from db.train_data_module.train_data_func import get_train_data
+    from db.train_label_module.train_label_func import get_train_label
+except:
+    pass
 
 CONF = OmegaConf.load('./config.yaml')
+
 DS = DirSystem()
 DS.load_config(CONF)
-MR = MyReport(DS.report_dir)
-CS = ChecksumSystem()
-MC = ModelCache()
 
+MC = ModelCache()
 AM = AttentionModel()
+CS = ChecksumSystem()
+
+MR = MyReport(DS.report_dir)
 
 app = Flask(__name__)
 
@@ -85,32 +95,6 @@ def _echo():
     return MSG.error_response(body={}, msg="Invalid request method"), 400
 
 
-@app.route('/report', methods=['POST'])
-def _report_deprecated():
-    '''Generate a report'''
-    # Get the request body
-    # Check the request body
-    try:
-        required_keys = ['name', 'org_id', 'user_id', 'project_name', 'event']
-        body = request.get_json()
-        logger.debug(f'body: {body}')
-        assert all(key in body
-                   for key in required_keys), 'Missing keys in request body'
-    except Exception as e:
-        logger.exception(e)
-        return MSG.error_response(body={}, msg=ERRORS.request_error.msg), 400
-
-    # Generate the report
-    try:
-        report_info = MR.generate_report(**body)
-        logger.debug(f'Generated report: {report_info}')
-        body.update(report_info)
-        return MSG.success_response(body=body)
-    except Exception as e:
-        logger.exception(e)
-        return MSG.error_response(body=body, msg=ERRORS.report_error.msg), 400
-
-
 @app.route('/train', methods=['POST'])
 def _train():
     '''Train the model'''
@@ -139,6 +123,14 @@ def _train():
     except Exception as e:
         logger.exception(e)
         return MSG.error_response(body=body, msg=ERRORS.data_fetching_error.msg), 400
+
+    # Determine model name
+    try:
+        model_names = tellme_train_model(label, body['project_name'])
+        logger.debug(f'Using train model: {model_names}')
+    except Exception as e:
+        logger.exception(e)
+        return MSG.error_response(body=body, msg=ERRORS.model_loading_error.msg), 400
 
     # Train the model
     try:
@@ -185,7 +177,28 @@ def _train():
         return MSG.error_response(body=body, msg=ERRORS.training_error.msg), 400
 
 
-@app.route('/report', methods=['POST'])
+@app.route('/report/get', methods=['GET'])
+def _report_get():
+    body = {}
+    # Generate report
+    output_path = MR.mk_report_path()
+    generate_report(output_path)
+    body.update({'report_path': output_path.as_posix(),
+                'report_name': output_path.name})
+
+    __output_example = {
+        'name': 'name',
+        'org_id': 'orgId',
+        'user_id': 'userId',
+        'project_name': 'projectName',
+        'report_path': 'reportPath,CheckSum',
+        'report_name': 'reportName'
+    }
+
+    return MSG.success_response(body=body)
+
+
+@app.route('/report', methods=['POST', 'GET'])
 def _report():
     '''Generate the report'''
     # Get the request body
@@ -206,6 +219,7 @@ def _report():
     checksum = 'abcdefg'
     dst = Path('abcdefg.pdf')
     name = 'abcdefg report'
+    generate_report(dst)
     body.update({'report_path': f'{dst.as_posix()},{checksum}',
                 'report_name': name+f'.{time.time()}'})
 
@@ -226,16 +240,27 @@ def _predict():
     '''Predict with the model'''
     # Get the request body
     # Check the request body
+
     try:
         required_keys = ['name', 'org_id', 'user_id',
                          'project_name', 'label_content']
         body = request.get_json()
-        logger.debug(f'body: {body}')
+        # Require label once
+        label = body['label_content']
+        # logger.debug(f'body: {body}')
         assert all(key in body
                    for key in required_keys), 'Missing keys in request body'
     except Exception as e:
         logger.exception(e)
         return MSG.error_response(body={}, msg=ERRORS.request_error.msg), 400
+
+    # Determine model name
+    try:
+        model_names = tellme_predict_model(label, body['project_name'])
+        logger.debug(f'Using predict model: {model_names}')
+    except Exception as e:
+        logger.exception(e)
+        return MSG.error_response(body=body, msg=ERRORS.model_loading_error.msg), 400
 
     # Find the model
     try:
@@ -255,23 +280,19 @@ def _predict():
         return MSG.error_response(body=body, msg=ERRORS.model_loading_error.msg), 400
 
     data = None
-    label = None
     try:
-        dump_body = {
+        predict_body = {
             'org_id': body['org_id'],
             'user_id': body['user_id'],
             'project_name': body['project_name'],
             'name': body['name'],
         }
 
-        # Require label once
-        label = body['label_content']
-
         # Fetch data from db
         # Try maximum 10 times for data when the data is not enough
         for i in range(10):
             try:
-                data = get_predict_data(**dump_body)
+                data = get_predict_data(**predict_body)
             except Exception as e:
                 return MSG.error_response(body=body, msg=ERRORS.data_fetching_error.msg), 400
             try:
@@ -309,6 +330,32 @@ def _predict():
         DS.dump_variables('predict-dump', dump_body)
 
         return MSG.error_response(body=body, msg=ERRORS.inference_error.msg), 400
+
+
+@app.route('/report_deprecated', methods=['POST'])
+def _report_deprecated():
+    '''Generate a report'''
+    # Get the request body
+    # Check the request body
+    try:
+        required_keys = ['name', 'org_id', 'user_id', 'project_name', 'event']
+        body = request.get_json()
+        logger.debug(f'body: {body}')
+        assert all(key in body
+                   for key in required_keys), 'Missing keys in request body'
+    except Exception as e:
+        logger.exception(e)
+        return MSG.error_response(body={}, msg=ERRORS.request_error.msg), 400
+
+    # Generate the report
+    try:
+        report_info = MR.generate_report(**body)
+        logger.debug(f'Generated report: {report_info}')
+        body.update(report_info)
+        return MSG.success_response(body=body)
+    except Exception as e:
+        logger.exception(e)
+        return MSG.error_response(body=body, msg=ERRORS.report_error.msg), 400
 
 
 # %% ---- 2025-05-19 ------------------------

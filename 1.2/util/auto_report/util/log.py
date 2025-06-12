@@ -1,11 +1,11 @@
 """
 File: log.py
 Author: Chuncheng Zhang
-Date: 2025-05-07
+Date: 2025-06-09
 Copyright & Email: chuncheng.zhang@ia.ac.cn
 
 Purpose:
-    The log for the project.
+    Logging for the pdf module.
 
 Functions:
     1. Requirements and constants
@@ -16,37 +16,40 @@ Functions:
 """
 
 
-# %% ---- 2025-05-07 ------------------------
+# %% ---- 2025-06-09 ------------------------
 # Requirements and constants
 from loguru import logger
-from datetime import datetime
 
-t = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
 
-# %% ---- 2025-05-07 ------------------------
+# %% ---- 2025-06-09 ------------------------
 # Function and class
-logger.add(f'log/debug.{t}.log',
+
+logger.add('log/report-debug.log',
            level='DEBUG',
+           rotation='5 MB',
+           retention="2 days",
            enqueue=True,
            backtrace=True,
            diagnose=True,
-           )
+           compression="zip")
 
-logger.add(f'log/info.{t}.log',
+logger.add('log/report-info.log',
            level='INFO',
+           rotation='5 MB',
+           retention="2 days",
            enqueue=True,
            backtrace=True,
            diagnose=True,
-           )
+           compression="zip")
 
 
-# %% ---- 2025-05-07 ------------------------
+# %% ---- 2025-06-09 ------------------------
 # Play ground
 
 
-# %% ---- 2025-05-07 ------------------------
+# %% ---- 2025-06-09 ------------------------
 # Pending
 
 
-# %% ---- 2025-05-07 ------------------------
+# %% ---- 2025-06-09 ------------------------
 # Pending

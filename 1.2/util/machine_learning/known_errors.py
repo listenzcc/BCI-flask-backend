@@ -49,9 +49,14 @@ class TrainingError:
         code = 1414
 
     class DataLabelMissMatch(MyError, Exception):
-        msg = '数据与标签失匹配'
+        msg = '数据与标签不匹配'
         name = 'Data & Label Miss Match Error'
         code = 1415
+
+    class ProjectNameError(MyError, Exception):
+        msg = '项目名称错误'
+        name = 'Project Name Error'
+        code = 1416
 
     class UnExceptedError(MyError, Exception):
         msg = '模型训练时遇到错误，但此错误不在已知错误列表中'
@@ -86,9 +91,14 @@ class PredictingError:
         code = 1515
 
     class DataLabelMissMatch(MyError, Exception):
-        msg = '数据与标签失匹配'
+        msg = '数据与标签不匹配'
         name = 'Data & Label Miss Match Error'
         code = 1516
+
+    class ProjectNameError(MyError, Exception):
+        msg = '项目名称错误'
+        name = 'Project Name Error'
+        code = 1517
 
     class UnExceptedError(MyError, Exception):
         msg = '模型预测时遇到错误，但此错误不在已知错误列表中'

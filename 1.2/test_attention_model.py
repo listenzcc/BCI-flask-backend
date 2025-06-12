@@ -35,13 +35,13 @@ MC = ModelCache()
 # %% ---- 2025-05-28 ------------------------
 # Function and class
 training_data = json.load(
-    open('./example/game00000001_11_5448_1747645799760/train_data.json'))['message']
+    open('./example/data-a/train_data.json', encoding='utf-8'))['message']
 training_label = json.load(
-    open('./example/game00000001_11_5448_1747645799760/train_label.json'))['message']
+    open('./example/data-a/train_label.json', encoding='utf-8'))['message']
 predicting_data = json.load(
-    open('./example/game00000001_11_5448_1747645799760/predict_data.json'))['message']
+    open('./example/data-a/predict_data.json', encoding='utf-8'))['message']
 predicting_result = json.load(
-    open('./example/game00000001_11_5448_1747645799760/predict_result.json'))['message']
+    open('./example/data-a/predict_result.json', encoding='utf-8'))['message']
 
 # %%
 
@@ -83,7 +83,7 @@ info = dict(
     event='event'
 )
 fname = CS.generate_random_filename(info)
-dst = Path('test_attention_model', fname)
+dst = Path('test_result/test_attention_model', fname)
 checksum = CS.save_model(info, model, dst)
 latest_models = [f'{dst.as_posix()},{checksum}']
 print(latest_models)

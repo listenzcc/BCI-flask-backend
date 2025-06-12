@@ -18,6 +18,7 @@ Functions:
 
 # %% ---- 2025-05-19 ------------------------
 # Requirements and constants
+import time
 import joblib
 from pathlib import Path
 from .log import logger
@@ -72,22 +73,9 @@ class MyReport:
         self.directory.mkdir(parents=True, exist_ok=True)
         logger.info(f'Initialize with directory: {directory}')
 
-    def generate_report(self, name, org_id, user_id, project_name, event):
-        basename = f'{name}-{org_id}-{user_id}-{project_name}-{event}'
-
-        # Find the good fpath
-        fpath = self.directory.joinpath(f'{basename}.html')
-        for i in range(10000000):
-            fname = f'{basename}-[{i}].html'
-            fpath = self.directory.joinpath(fname)
-            if not fpath.is_file():
-                break
-        logger.debug(f'Using fpath: {fpath}')
-
-        with open(fpath, 'w') as f:
-            f.writelines([name, org_id, user_id, project_name, event])
-        logger.info(f'Wrote report: {fpath}')
-        return dict(path=fpath.as_posix(), name=fpath.name)
+    def mk_report_path(self, prefix='report'):
+        rnd = time.time()
+        return self.directory.joinpath(f'{prefix}-{rnd}.pdf')
 
 
 class ModelCache:
