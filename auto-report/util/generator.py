@@ -18,14 +18,11 @@ Functions:
 
 # %% ---- 2025-06-09 ------------------------
 # Requirements and constants
-from pathlib import Path
-import os
 import hashlib
-import matplotlib.pyplot as plt
 
 from io import BytesIO
+from pathlib import Path
 from datetime import datetime
-from PIL import Image as PILImage
 
 from reportlab.lib import colors
 from reportlab.lib.units import inch
@@ -33,9 +30,7 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Paragraph, Spacer, Image, PageBreak, BaseDocTemplate, Frame, PageTemplate
+from reportlab.platypus import Table, Paragraph, Spacer, Image, PageBreak, BaseDocTemplate, Frame, PageTemplate
 
 from .font import register_chinese_font
 from .log import logger
@@ -223,7 +218,7 @@ class PDFGenerator(PDFGeneratorBase):
     def __init__(self):
         super().__init__()
 
-    def add_image_with_caption(self, path_or_bytes, caption: str, width: float = 0, height: float = 0):
+    def insert_image_with_caption(self, path_or_bytes, caption: str, width: float = 6):
         """
         This function inserts an image into the doc.
 
@@ -232,10 +227,8 @@ class PDFGenerator(PDFGeneratorBase):
             Or the bytes can be converted to Image
         """
         img = Image(path_or_bytes)
-        if width > 0:
-            img.drawWidth = width * inch
-        if height > 0:
-            img.drawHeight = height * inch
+        img.drawWidth = width * inch
+        img.drawHeight = img.drawWidth / img.imageWidth * img.imageHeight
         self.elements.append(img)
         self.elements.append(Paragraph(caption, self.styles['ImageCaption']))
         # 添加一些间距
@@ -243,7 +236,7 @@ class PDFGenerator(PDFGeneratorBase):
         logger.debug(f'Added {img}, {caption}')
         pass
 
-    def add_title_page(self, title: str, subtitle: str = ''):
+    def insert_title_page(self, title: str, subtitle: str = ''):
         """添加标题页"""
         # Title
         self.elements.append(Spacer(1, 1*inch))
@@ -266,18 +259,38 @@ class PDFGenerator(PDFGeneratorBase):
             Paragraph(f'日期：{self.date}', self.styles['CenteredText']))
 
         # Segment
-        self.add_page_break()
+        self.insert_page_break()
         logger.debug(f'Added title page: {title}, {subtitle}')
         return
 
-    def add_paragraph(self, text: str, style='BodyText'):
+    def insert_paragraph(self, text: str, style='BodyText'):
         """添加段落"""
         self.elements.append(Paragraph(text, self.styles[style]))
         self.elements.append(Spacer(1, 0.2*inch))
         logger.debug(f'Added text: {text[:20]}...')
         return
 
-    def add_page_break(self):
+    def insert_table(self, *lines):
+        """
+        It inserts a table into the database.
+        """
+        col_width = 120
+        style = [
+            ('FONTNAME', (0, 0), (-1, -1), self.font_name),  # 字体
+            ('FONTSIZE', (0, 0), (-1, 0), 12),  # 第一行的字体大小
+            ('FONTSIZE', (0, 1), (-1, -1), 10),  # 第二行到最后一行的字体大小
+            ('BACKGROUND', (0, 0), (-1, 0), '#d5dae6'),  # 设置第一行背景颜色
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),  # 第一行水平居中
+            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),  # 第二行到最后一行左右左对齐
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),  # 所有表格上下居中对齐
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.darkslategray),  # 设置表格内文字颜色
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),  # 设置表格框线为grey色，线宽为0.5
+        ]
+        table = Table(lines, colWidths=col_width, style=style)
+        self.elements.append(table)
+        return
+
+    def insert_page_break(self):
         self.elements.append(PageBreak())
         logger.debug('Added page break')
         return

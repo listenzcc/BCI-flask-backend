@@ -18,17 +18,51 @@ Functions:
 
 # %% ---- 2025-06-11 ------------------------
 # Requirements and constants
-from io import BytesIO
-from figure_worker.car.fig1_radar.radar_plot import SimpleRadarExtractor as Fig1Plot
+from figure_worker.car.fig3_unbalanced_operation_plot.main import Processor as ProcessorCarFig3
+from figure_worker.car.fig4_attentionhalf.main import Processor as ProcessorCarFig4
+from figure_worker.car.fig5_attentionline.main import Processor as ProcessorCarFig5
+from figure_worker.car.fig6_attentionminutes.main import Processor as ProcessorCarFig6
 
 
 # %% ---- 2025-06-11 ------------------------
 # Function and class
-class BaseWorker:
-    name: str
-    data: dict
-    buff: BytesIO
-    result: str
+class BaseMkFigure:
+    def __init__(self, data):
+        self.data = data
+
+    def produce(self):
+        pro = self.processor(self.data)
+
+        for obj in pro.process():
+            yield obj
+
+
+class MkCarFigure3(BaseMkFigure):
+    processor = ProcessorCarFig3
+
+    def __init__(self, data):
+        super().__init__(data)
+
+
+class MkCarFigure4(BaseMkFigure):
+    processor = ProcessorCarFig4
+
+    def __init__(self, data):
+        super().__init__(data)
+
+
+class MkCarFigure5(BaseMkFigure):
+    processor = ProcessorCarFig5
+
+    def __init__(self, data):
+        super().__init__(data)
+
+
+class MkCarFigure6(BaseMkFigure):
+    processor = ProcessorCarFig6
+
+    def __init__(self, data):
+        super().__init__(data)
 
 
 # %% ---- 2025-06-11 ------------------------
