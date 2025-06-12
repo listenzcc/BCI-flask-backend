@@ -180,6 +180,7 @@ def _train():
 @app.route('/report/get', methods=['GET'])
 def _report_get():
     body = {}
+
     # Generate report
     output_path = MR.mk_report_path()
     generate_report(output_path)
@@ -216,12 +217,10 @@ def _report():
     # TODO: Request data
 
     # Generate report
-    checksum = 'abcdefg'
-    dst = Path('abcdefg.pdf')
-    name = 'abcdefg report'
-    generate_report(dst)
-    body.update({'report_path': f'{dst.as_posix()},{checksum}',
-                'report_name': name+f'.{time.time()}'})
+    output_path = MR.mk_report_path()
+    generate_report(output_path)
+    body.update({'report_path': output_path.as_posix(),
+                'report_name': output_path.name})
 
     __output_example = {
         'name': 'name',
