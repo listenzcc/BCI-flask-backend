@@ -12,3 +12,4 @@ tqdm
 mysql==9.2.0
 scipy
 scikit-learn
+reportlab==4.3.1
