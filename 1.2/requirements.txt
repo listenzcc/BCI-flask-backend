@@ -9,7 +9,7 @@ rich
 scikit_learn
 scipy
 tqdm
-mysql==9.2.0
+mysql-connector-python==9.2.0
 scipy
 scikit-learn
 reportlab==4.3.1
