@@ -18,6 +18,8 @@ Functions:
 
 # %% ---- 2025-06-11 ------------------------
 # Requirements and constants
+from figure_worker.car.fig1_radar.main import Processor as ProcessorCarFig1
+from figure_worker.car.fig2_line.main import Processor as ProcessorCarFig2
 from figure_worker.car.fig3_unbalanced_operation_plot.main import Processor as ProcessorCarFig3
 from figure_worker.car.fig4_attentionhalf.main import Processor as ProcessorCarFig4
 from figure_worker.car.fig5_attentionline.main import Processor as ProcessorCarFig5
@@ -35,6 +37,20 @@ class BaseMkFigure:
 
         for obj in pro.process():
             yield obj
+
+
+class MkCarFigure1(BaseMkFigure):
+    processor = ProcessorCarFig1
+
+    def __init__(self, data):
+        super().__init__(data)
+
+
+class MkCarFigure2(BaseMkFigure):
+    processor = ProcessorCarFig2
+
+    def __init__(self, data):
+        super().__init__(data)
 
 
 class MkCarFigure3(BaseMkFigure):

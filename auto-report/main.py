@@ -23,28 +23,43 @@ from pathlib import Path
 from util.conversion import fig_to_bytes
 from util.random_fig import mk_random_fig
 from util.generator import PDFGenerator
-from figure_worker.mk_figure import MkCarFigure3, MkCarFigure4, MkCarFigure5, MkCarFigure6
+from figure_worker.mk_figure import MkCarFigure1, MkCarFigure2, MkCarFigure3, MkCarFigure4, MkCarFigure5, MkCarFigure6
 
 # %% ---- 2025-06-09 ------------------------
 # Function and class
 
 # %% ---- 2025-06-09 ------------------------
 # Play ground
+
+content = '''
+万艘龙舸绿丝间，载到扬州尽不还。
+应是天教开汴水，一千余里地无山。
+
+尽道隋亡为此河，至今千里赖通波。
+若无水殿龙舟事，共禹论功不较多。
+'''
 # A special variable in Python that evaluates to `True` if the module is being run as the main program.
 if __name__ == '__main__':
     generator = PDFGenerator()
 
     generator.insert_title_page(title='Title', subtitle='Subtitle')
 
-    for _ in range(3):
-        generator.insert_paragraph('fu83niubrnfuygbafyugdggggggggggggggg'*4)
+    for style in ['BodyText', 'CenteredText', 'ImageCaption']:
+        generator.insert_paragraph(style, 'Subtitle')
+        if style == 'ImageCaption':
+            generator.insert_image_with_caption(
+                Path('./img.jpg'), 'Example fig')
+        generator.insert_paragraph(content, style)
+
     generator.insert_page_break()
 
+    fig1 = MkCarFigure1(None)
+    fig2 = MkCarFigure2(None)
     fig3 = MkCarFigure3(None)
     fig4 = MkCarFigure4(None)
     fig5 = MkCarFigure5(None)
     fig6 = MkCarFigure6(None)
-    for f in [fig3, fig4, fig5, fig6]:
+    for f in [fig1, fig2, fig3, fig4, fig5, fig6]:
         for obj in f.produce():
             img_bytes = obj['buff']
             report = str(obj['report'])
