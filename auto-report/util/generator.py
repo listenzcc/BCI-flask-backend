@@ -177,7 +177,7 @@ class PDFGeneratorBase:
         )
         self.doc.addPageTemplates([PageTemplate(
             id='MyPage1',
-            frames=[content_frame, footer_frame],
+            frames=[content_frame],
             onPage=self._render_page)
         ])
         return self.doc

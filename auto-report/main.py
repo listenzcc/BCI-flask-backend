@@ -50,8 +50,12 @@ if __name__ == '__main__':
             report = str(obj['report'])
             name = obj['name']
             generator.insert_image_with_caption(img_bytes, name)
+            try:
+                generator.insert_paragraph(f.processor.readme_legend)
+            except:
+                pass
             generator.insert_paragraph(report)
-            generator.insert_page_break()
+            # generator.insert_page_break()
 
     generator.insert_paragraph('表格')
     data = [
