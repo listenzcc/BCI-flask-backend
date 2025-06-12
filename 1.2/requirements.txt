@@ -1,0 +1,14 @@
+Flask
+joblib
+loguru
+nolds
+numpy
+omegaconf
+Requests
+rich
+scikit_learn
+scipy
+tqdm
+mysql==9.2.0
+scipy
+scikit-learn
