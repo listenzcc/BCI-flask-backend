@@ -13,3 +13,5 @@ mysql-connector-python==9.2.0
 scipy
 scikit-learn
 reportlab==4.3.1
+matplotlib==3.9.2
+matplotlib-inline==0.1.7
