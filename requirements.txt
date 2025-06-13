@@ -9,6 +9,8 @@ rich
 scikit_learn
 scipy
 tqdm
-mysql==9.2.0
 scipy
 scikit-learn
+matplotlib==3.9.2
+matplotlib-inline==0.1.7
+mysql-connector-python==9.2.0
