@@ -225,7 +225,11 @@ def _report():
     # report_name = 'car' | 'mouse'
     generate_report(output_path, 'car')
     body.update({'report_path': output_path.as_posix(),
-                'report_name': output_path.name})
+                'report_name': output_path.name,
+                 'npe': {'npe': None},
+                 'file_report': {'file_report': None},
+                 'app_report': {'app_report': None}
+                 })
 
     __output_example = {
         'name': 'name',
