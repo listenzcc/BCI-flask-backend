@@ -148,12 +148,13 @@ def _train():
             user_id=body['user_id'],
             project_name=body['project_name'],
         )
-        fname = CS.generate_random_filename(info)
+        name = trained_model.get('name', 'Unnamed')
+        fname = name+'.'+CS.generate_random_filename(info)
+        unique_model_name = f'{name}.{time.time()}'
         dst = Path(DS.model_dir, fname)
         checksum = CS.save_model(info, trained_model, dst)
-        import time
         body.update({'model_path': f'{dst.as_posix()},{checksum}',
-                    'model_name': trained_model['name']+f'.{time.time()}'})
+                    'model_name': unique_model_name})
 
         __output_example = {
             'name': 'name',
