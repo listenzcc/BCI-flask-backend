@@ -25,6 +25,10 @@ from .car.fig4_attentionhalf.main import Processor as ProcessorCarFig4
 from .car.fig5_attentionline.main import Processor as ProcessorCarFig5
 from .car.fig6_attentionminutes.main import Processor as ProcessorCarFig6
 
+from .mouse.fig1_bar.main import Processor as ProcessorMouseFig1
+from .mouse.fig2_RT.main import Processor as ProcessorMouseFig2
+from .mouse.fig3_memoryscores.main import Processor as ProcessorMouseFig3
+
 
 # %% ---- 2025-06-11 ------------------------
 # Function and class
@@ -81,6 +85,25 @@ class MkCarFigure6(BaseMkFigure):
         super().__init__(data)
 
 
+class MkMouseFigure1(BaseMkFigure):
+    processor = ProcessorMouseFig1
+
+    def __init__(self, data):
+        super().__init__(data)
+
+
+class MkMouseFigure2(BaseMkFigure):
+    processor = ProcessorMouseFig2
+
+    def __init__(self, data):
+        super().__init__(data)
+
+
+class MkMouseFigure3(BaseMkFigure):
+    processor = ProcessorMouseFig3
+
+    def __init__(self, data):
+        super().__init__(data)
 # %% ---- 2025-06-11 ------------------------
 # Play ground
 

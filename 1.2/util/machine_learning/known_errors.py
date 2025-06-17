@@ -27,6 +27,13 @@ class MyError:
         super().__init__(self.name)
 
 
+class ModelLoadingError:
+    class NameError(MyError, Exception):
+        msg = '模型名称错误'
+        name = 'Model Name Error'
+        code = 1311
+
+
 class TrainingError:
     class LabelError(MyError, Exception):
         msg = '标签错误，标签中不包含有效类别'
@@ -43,8 +50,8 @@ class TrainingError:
         name = 'Data Format Error'
         code = 1413
 
-    class ModelError(MyError, Exception):
-        msg = '模型错误，无法进行训练'
+    class ModelTrainingError(MyError, Exception):
+        msg = '模型训练错误，无法进行训练'
         name = 'Model Error'
         code = 1414
 

@@ -161,24 +161,30 @@ class PDFGeneratorBase:
             bottomMargin=72
         )
 
-        content_frame = Frame(
+        cover_frame = Frame(
             self.doc.leftMargin,
             self.doc.bottomMargin + 0.5 * inch,  # Leave space for footer
             self.doc.width,
             self.doc.height - 0.5 * inch,
             id='content'
         )
-        footer_frame = Frame(
-            self.doc.leftMargin,
-            self.doc.bottomMargin,
-            self.doc.width,
-            0.5 * inch,
-            id='footer'
-        )
-        self.doc.addPageTemplates([PageTemplate(
-            id='MyPage1',
-            frames=[content_frame],
-            onPage=self._render_page)
+        # Two Columns
+        doc = self.doc
+        left_frame = Frame(doc.leftMargin, doc.bottomMargin,
+                           doc.width/2-6, doc.height, id='col1')
+        right_frame = Frame(doc.leftMargin+doc.width/2+6,
+                            doc.bottomMargin, doc.width/2-6, doc.height, id='col2')
+
+        self.doc.addPageTemplates([
+            PageTemplate(
+                id='CoverPage',
+                frames=[cover_frame],
+                autoNextPageTemplate='TwoColumnsPage',
+                onPage=self._render_page),
+            PageTemplate(
+                id='TwoColumnsPage',
+                frames=[left_frame, right_frame],
+                onPage=self._render_page)
         ])
         return self.doc
 
@@ -218,7 +224,7 @@ class PDFGenerator(PDFGeneratorBase):
     def __init__(self):
         super().__init__()
 
-    def insert_image_with_caption(self, path_or_bytes, caption: str, width: float = 6):
+    def insert_image_with_caption(self, path_or_bytes, caption: str, width: float = 3):
         """
         This function inserts an image into the doc.
 

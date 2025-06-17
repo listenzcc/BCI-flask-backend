@@ -33,7 +33,7 @@ from util.known_errors import ERRORS
 # Machine learning
 from util.machine_learning.known_errors import TrainingError, PredictingError
 from util.machine_learning.model_storage.model_cache import ModelCache, ChecksumSystem
-from util.machine_learning.tellme_which_model_to_use import tellme_predict_model, tellme_train_model
+from util.machine_learning.tellme_which_model_to_use import tellme_predict_model, tellme_train_model, checkout_model
 from util.machine_learning.attention_calculator.attention_model import AttentionModel
 
 # Auto report
@@ -55,7 +55,6 @@ DS = DirSystem()
 DS.load_config(CONF)
 
 MC = ModelCache()
-AM = AttentionModel()
 CS = ChecksumSystem()
 
 MR = MyReport(DS.report_dir)
@@ -124,9 +123,11 @@ def _train():
         logger.exception(e)
         return MSG.error_response(body=body, msg=ERRORS.data_fetching_error.msg), 400
 
-    # Determine model name
+    # Determine model name and checkout model
     try:
         model_names = tellme_train_model(label, body['project_name'])
+        Model = checkout_model(model_names[0])
+        training_model = Model()
         logger.debug(f'Using train model: {model_names}')
     except Exception as e:
         logger.exception(e)
@@ -136,7 +137,7 @@ def _train():
     try:
         # Train the model
         try:
-            model = AM.train(data, label)
+            trained_model = training_model.train(data, label)
         except Exception as e:
             logger.exception(e)
             raise e
@@ -149,10 +150,10 @@ def _train():
         )
         fname = CS.generate_random_filename(info)
         dst = Path(DS.model_dir, fname)
-        checksum = CS.save_model(info, model, dst)
+        checksum = CS.save_model(info, trained_model, dst)
         import time
         body.update({'model_path': f'{dst.as_posix()},{checksum}',
-                    'model_name': model['name']+f'.{time.time()}'})
+                    'model_name': trained_model['name']+f'.{time.time()}'})
 
         __output_example = {
             'name': 'name',
@@ -181,9 +182,11 @@ def _train():
 def _report_get():
     body = {}
 
+    report_name = str(request.args.get('report_name'))
+
     # Generate report
-    output_path = MR.mk_report_path()
-    generate_report(output_path)
+    output_path = MR.mk_report_path(prefix=f'report-{report_name}')
+    generate_report(output_path, report_name)
     body.update({'report_path': output_path.as_posix(),
                 'report_name': output_path.name})
 
@@ -218,7 +221,8 @@ def _report():
 
     # Generate report
     output_path = MR.mk_report_path()
-    generate_report(output_path)
+    # report_name = 'car' | 'mouse'
+    generate_report(output_path, 'car')
     body.update({'report_path': output_path.as_posix(),
                 'report_name': output_path.name})
 
@@ -256,6 +260,8 @@ def _predict():
     # Determine model name
     try:
         model_names = tellme_predict_model(label, body['project_name'])
+        Model = checkout_model(model_names[0])
+        predicting_model = Model()
         logger.debug(f'Using predict model: {model_names}')
     except Exception as e:
         logger.exception(e)
@@ -296,7 +302,7 @@ def _predict():
                 return MSG.error_response(body=body, msg=ERRORS.data_fetching_error.msg), 400
             try:
                 # Predict with the model
-                predicted = AM.predict(model, data, label)
+                predicted = predicting_model.predict(model, data, label)
                 logger.debug(f'Predicted: {predicted}')
                 body.update({'pred': predicted})
                 body.pop('label_content')

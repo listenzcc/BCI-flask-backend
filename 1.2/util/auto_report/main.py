@@ -20,10 +20,9 @@ Functions:
 # Requirements and constants
 from pathlib import Path
 
-from .util.conversion import fig_to_bytes
-from .util.random_fig import mk_random_fig
 from .util.generator import PDFGenerator
 from .util.figure_worker.mk_figure import MkCarFigure1, MkCarFigure2, MkCarFigure3, MkCarFigure4, MkCarFigure5, MkCarFigure6
+from .util.figure_worker.mk_figure import MkMouseFigure1, MkMouseFigure2, MkMouseFigure3
 
 # %% ---- 2025-06-09 ------------------------
 # Function and class
@@ -38,10 +37,33 @@ content = '''
 '''
 
 
-def generate_report(output_path: Path):
+def checkout_figworkers(report_name: str):
+    workers = []
+    if report_name == 'car':
+        workers.extend([
+            MkCarFigure1(None),
+            MkCarFigure2(None),
+            MkCarFigure3(None),
+            MkCarFigure4(None),
+            MkCarFigure5(None),
+            MkCarFigure6(None)
+        ])
+    elif report_name == 'mouse':
+        workers.extend([
+            MkMouseFigure1(None),
+            MkMouseFigure2(None),
+            MkMouseFigure3(None)
+        ])
+
+    return workers
+
+
+def generate_report(output_path: Path, report_name: str):
+    title = f'Report: {report_name}'
+
     generator = PDFGenerator()
 
-    generator.insert_title_page(title='Title', subtitle='Subtitle')
+    generator.insert_title_page(title=title, subtitle='Subtitle')
 
     for style in ['BodyText', 'CenteredText', 'ImageCaption']:
         generator.insert_paragraph(style, 'Subtitle')
@@ -52,14 +74,14 @@ def generate_report(output_path: Path):
 
     generator.insert_page_break()
 
-    fig1 = MkCarFigure1(None)
-    fig2 = MkCarFigure2(None)
-    fig3 = MkCarFigure3(None)
-    fig4 = MkCarFigure4(None)
-    fig5 = MkCarFigure5(None)
-    fig6 = MkCarFigure6(None)
-    for f in [fig1, fig2, fig3, fig4, fig5, fig6]:
+    fig_workers = checkout_figworkers(report_name)
+
+    for f in fig_workers:
         for obj in f.produce():
+            if obj is None:
+                obj = {'buff': Path('./asset/img/404.png'),
+                       'report': '404',
+                       'name': '404'}
             img_bytes = obj['buff']
             report = str(obj['report'])
             name = obj['name']
@@ -71,28 +93,16 @@ def generate_report(output_path: Path):
             generator.insert_paragraph(report)
             # generator.insert_page_break()
 
-    generator.insert_paragraph('表格')
-    data = [
-        ('职位名称', '平均薪资', '较上年增长率'),
-        ('Trump', '18.5K', '25%'),
-        ('Musk', '25.5K', '14%'),
-        ('SomeOne', '29.3K', '10%')
-    ]
-    generator.insert_table(*data)
-    generator.insert_page_break()
-
-    for i in range(5):
-        img_bytes = fig_to_bytes(mk_random_fig())
-        generator.insert_image_with_caption(
-            img_bytes, f'Fig. {i} Image caption')
     generator.generate(output_path)
+    return output_path
 
 
 # %% ---- 2025-06-09 ------------------------
 # Play ground
 
 if __name__ == '__main__':
-    generate_report(Path('example.pdf'))
+    generate_report(Path('example.pdf'), 'car')
+    generate_report(Path('example.pdf'), 'mouse')
 
 # %% ---- 2025-06-09 ------------------------
 # Pending
