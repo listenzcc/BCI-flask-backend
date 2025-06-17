@@ -186,10 +186,14 @@ def _report_get():
     report_name = str(request.args.get('report_name'))
 
     # Generate report
+    # report_name = 'car' | 'mouse'
+    report_name = 'car'
     output_path = MR.mk_report_path(prefix=f'report-{report_name}')
-    generate_report(output_path, report_name)
-    body.update({'report_path': output_path.as_posix(),
-                'report_name': output_path.name})
+    path, need_saves = generate_report(output_path, report_name)
+    body.update({'report_path': path.as_posix(),
+                'report_name': path.name,
+                 })
+    body.update(need_saves)
 
     __output_example = {
         'name': 'name',
@@ -221,15 +225,17 @@ def _report():
     # TODO: Request data
 
     # Generate report
-    output_path = MR.mk_report_path()
     # report_name = 'car' | 'mouse'
-    generate_report(output_path, 'car')
-    body.update({'report_path': output_path.as_posix(),
-                'report_name': output_path.name,
+    report_name = 'car'
+    output_path = MR.mk_report_path(prefix=f'report-{report_name}')
+    path, need_saves = generate_report(output_path, report_name)
+    body.update({'report_path': path.as_posix(),
+                'report_name': path.name,
                  'npe': {'npe': None},
                  'file_report': {'file_report': None},
                  'app_report': {'app_report': None}
                  })
+    body.update(need_saves)
 
     __output_example = {
         'name': 'name',

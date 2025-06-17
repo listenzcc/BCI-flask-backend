@@ -76,6 +76,8 @@ def generate_report(output_path: Path, report_name: str):
 
     fig_workers = checkout_figworkers(report_name)
 
+    need_saves = {}
+
     for f in fig_workers:
         for obj in f.produce():
             if obj is None:
@@ -85,6 +87,11 @@ def generate_report(output_path: Path, report_name: str):
             img_bytes = obj['buff']
             report = str(obj['report'])
             name = obj['name']
+
+            if dct := obj.get('_NeedSave'):
+                if isinstance(dct, dict):
+                    need_saves.update(dct)
+
             generator.insert_image_with_caption(img_bytes, name)
             try:
                 generator.insert_paragraph(f.processor.readme_legend)
@@ -94,7 +101,7 @@ def generate_report(output_path: Path, report_name: str):
             # generator.insert_page_break()
 
     generator.generate(output_path)
-    return output_path
+    return output_path, need_saves
 
 
 # %% ---- 2025-06-09 ------------------------
