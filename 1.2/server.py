@@ -271,9 +271,10 @@ def _predict():
     # Determine model name
     try:
         model_names = tellme_predict_model(label, body['project_name'])
-        Model = checkout_model(model_names[0])
+        model_name = model_names[0]
+        Model = checkout_model(model_name)
         predicting_model = Model()
-        logger.debug(f'Using predict model: {model_names}')
+        logger.debug(f'Using predict model: {model_names}, {model_name}')
     except Exception as e:
         logger.exception(e)
         return MSG.error_response(body=body, msg=ERRORS.model_loading_error.msg), 400
@@ -287,6 +288,9 @@ def _predict():
             'project_name': body['project_name'],
         }
         latest_models = get_model(**query_kwargs)
+        # Filter the required model
+        latest_models = [e for e in latest_models if e.get(
+            'model_name') == model_name]
         model_path, checksum = latest_models[-1]['model_path'].split(',')
         model, info, checksum = CS.read_model(model_path, checksum)
         model_record = MC.insert(model, info, checksum)
