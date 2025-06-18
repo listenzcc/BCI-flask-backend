@@ -24,6 +24,11 @@ from .util.generator import PDFGenerator
 from .util.figure_worker.mk_figure import MkCarFigure1, MkCarFigure2, MkCarFigure3, MkCarFigure4, MkCarFigure5, MkCarFigure6
 from .util.figure_worker.mk_figure import MkMouseFigure1, MkMouseFigure2, MkMouseFigure3
 
+import matplotlib.pyplot as plt
+
+# plt.style.use('fivethirtyeight')
+plt.style.use('./pacoty.mplstyle')
+
 # %% ---- 2025-06-09 ------------------------
 # Function and class
 
