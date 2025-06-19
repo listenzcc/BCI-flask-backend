@@ -310,7 +310,7 @@ def _predict():
         model_name: str = tellme_predict_model(label, body['project_name'])
         Model = checkout_model(model_name)
         predicting_model = Model()
-        logger.debug(f'Using predict model: {model_names}, {model_name}')
+        logger.debug(f'Using predict model: {model_name}')
     except Exception as e:
         logger.exception(e)
         return MSG.error_response(body=body, msg=ERRORS.model_loading_error.msg), 400
@@ -327,15 +327,17 @@ def _predict():
 
         latest_models = []
         for rec in latest_models_raw:
+            # Found multiple models
             if m := rec.get('models'):
                 latest_models.extend(m)
+            # Found single model
             else:
                 latest_models.append(rec)
         logger.debug(f'Got latest_models: {latest_models}')
 
         # Filter the required model
-        latest_models = [e for e in latest_models if e.get(
-            'model_name') == model_name]
+        latest_models = [e for e in latest_models
+                         if e.get('model_name').startswith(model_name)]
         model_path, checksum = latest_models[-1]['model_path'].split(',')
         model, info, checksum = CS.read_model(model_path, checksum)
         model_record = MC.insert(model, info, checksum)
