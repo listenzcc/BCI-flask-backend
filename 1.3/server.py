@@ -222,11 +222,25 @@ def _report_get():
 
     report_name = str(request.args.get('report_name'))
 
+    if report_name == 'car':
+        data1 = None
+        data2 = None
+        data3 = None
+        data4 = None
+        data5 = None
+        data6 = None
+        report_data = [data1, data2, data3, data4, data5, data6]
+    elif report_name == 'mouse':
+        data1 = None
+        data2 = None
+        data3 = None
+        report_data = [data1, data2, data3]
+
     # Generate report
     # report_name = 'car' | 'mouse'
     report_name = 'car'
     output_path = MR.mk_report_path(prefix=f'report-{report_name}')
-    path, need_saves = generate_report(output_path, report_name)
+    path, need_saves = generate_report(output_path, report_name, report_data)
     body.update({'report_path': path.as_posix(),
                 'report_name': path.name,
                  })
@@ -259,31 +273,59 @@ def _report():
         logger.exception(e)
         return MSG.error_response(body={}, msg=ERRORS.request_error.msg), 400
 
-    # TODO: Request data
-
     # Generate report
     # report_name = 'car' | 'mouse'
     report_name = 'car'
-    output_path = MR.mk_report_path(prefix=f'report-{report_name}')
-    path, need_saves = generate_report(output_path, report_name)
-    body.update({'report_path': path.as_posix(),
-                'report_name': path.name,
-                 'npe': {'npe': None},
-                 'file_report': {'file_report': None},
-                 'app_report': {'app_report': None}
-                 })
-    body.update(need_saves)
 
-    __output_example = {
-        'name': 'name',
-        'org_id': 'orgId',
-        'user_id': 'userId',
-        'project_name': 'projectName',
-        'report_path': 'reportPath,CheckSum',
-        'report_name': 'reportName'
-    }
+    try:
+        output_path = MR.mk_report_path(prefix=f'report-{report_name}')
 
-    return MSG.success_response(body=body)
+        # TODO: Request data
+        if report_name == 'car':
+            data1 = None
+            data2 = None
+            data3 = None
+            data4 = None
+            data5 = None
+            data6 = None
+            report_data = [data1, data2, data3, data4, data5, data6]
+        elif report_name == 'mouse':
+            data1 = None
+            data2 = None
+            data3 = None
+            report_data = [data1, data2, data3]
+        else:
+            raise ValueError(f'Unknown report name: {report_name}')
+
+        path, need_saves = generate_report(
+            output_path, report_name, report_data)
+        body.update({'report_path': path.as_posix(),
+                    'report_name': path.name,
+                     'npe': {'npe': None},
+                     'file_report': {'file_report': None},
+                     'app_report': {'app_report': None}
+                     })
+        body.update(need_saves)
+
+        __output_example = {
+            'name': 'name',
+            'org_id': 'orgId',
+            'user_id': 'userId',
+            'project_name': 'projectName',
+            'report_path': 'reportPath,CheckSum',
+            'report_name': 'reportName'
+        }
+
+        return MSG.success_response(body=body)
+    except Exception as e:
+        logger.exception(e)
+        dump_body = dict(
+            body=body,
+            report_name=report_name,
+            error=f'{e}'
+        )
+        DS.dump_variables('report-dump', dump_body)
+        return MSG.error_response(body=body, msg=ERRORS.report_error.msg), 400
 
 
 @app.route('/predict', methods=['POST'])

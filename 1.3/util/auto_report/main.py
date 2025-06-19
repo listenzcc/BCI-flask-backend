@@ -57,28 +57,28 @@ content = '''
 '''
 
 
-def checkout_figworkers(report_name: str):
+def checkout_figworkers(report_name: str, report_data: list):
     workers = []
     if report_name == 'car':
         workers.extend([
-            MkCarFigure1(None),
-            MkCarFigure2(None),
-            MkCarFigure3(None),
-            MkCarFigure4(None),
-            MkCarFigure5(None),
-            MkCarFigure6(None)
+            MkCarFigure1(report_data[0]),
+            MkCarFigure2(report_data[1]),
+            MkCarFigure3(report_data[2]),
+            MkCarFigure4(report_data[3]),
+            MkCarFigure5(report_data[4]),
+            MkCarFigure6(report_data[5])
         ])
     elif report_name == 'mouse':
         workers.extend([
-            MkMouseFigure1(None),
-            MkMouseFigure2(None),
-            MkMouseFigure3(None)
+            MkMouseFigure1(report_data[0]),
+            MkMouseFigure2(report_data[1]),
+            MkMouseFigure3(report_data[2]),
         ])
 
     return workers
 
 
-def generate_report(output_path: Path, report_name: str):
+def generate_report(output_path: Path, report_name: str, report_data: list):
     title = f'Report: {report_name}'
 
     generator = PDFGenerator()
@@ -96,7 +96,7 @@ def generate_report(output_path: Path, report_name: str):
     generator.insert_paragraph('AI助手的建议', style='Subtitle')
     placeholder_idx = len(generator.elements)
 
-    fig_workers = checkout_figworkers(report_name)
+    fig_workers = checkout_figworkers(report_name, report_data)
 
     need_saves = {}
     msg = ollama_message_template.copy()
