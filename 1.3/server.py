@@ -378,7 +378,7 @@ def _predict():
                 }
 
                 return MSG.success_response(body=body)
-            except:
+            except Exception as e:
                 time.sleep(1)
                 continue
         raise PredictingError.ExceedMaximumPredictingTimes
