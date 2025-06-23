@@ -33,16 +33,17 @@ def register_chinese_font():
 
     # 尝试使用系统字体
     font_paths = [
+        "./asset/msyh.ttc",
         # Windows
-        "C:/Windows/Fonts/msyh.ttc",  # 微软雅黑
-        "C:/Windows/Fonts/simsun.ttc",  # 宋体
-        "C:/Windows/Fonts/simhei.ttf",  # 黑体
+        # "C:/Windows/Fonts/msyh.ttc",  # 微软雅黑
+        # "C:/Windows/Fonts/simsun.ttc",  # 宋体
+        # "C:/Windows/Fonts/simhei.ttf",  # 黑体
         # MacOS
-        "/System/Library/Fonts/STSong.ttf",
-        "/System/Library/Fonts/STHeiti Medium.ttc",
+        # "/System/Library/Fonts/STSong.ttf",
+        # "/System/Library/Fonts/STHeiti Medium.ttc",
         # Linux
-        "/usr/share/fonts/wenquanyi/wqy-zenhei.ttc",
-        "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
+        # "/usr/share/fonts/wenquanyi/wqy-zenhei.ttc",
+        # "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
     ]
     try:
         for path in font_paths:
