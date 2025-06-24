@@ -18,29 +18,26 @@ Functions:
 
 # %% ---- 2025-06-09 ------------------------
 # Requirements and constants
+from datetime import datetime
 from loguru import logger
 
-
+t = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
 # %% ---- 2025-06-09 ------------------------
 # Function and class
 
-logger.add('log/report-debug.log',
+logger.add('log/report-debug.{t}.log',
            level='DEBUG',
-           rotation='5 MB',
-           retention="2 days",
            enqueue=True,
            backtrace=True,
            diagnose=True,
-           compression="zip")
+           )
 
-logger.add('log/report-info.log',
+logger.add('log/report-info.{t}.log',
            level='INFO',
-           rotation='5 MB',
-           retention="2 days",
            enqueue=True,
            backtrace=True,
            diagnose=True,
-           compression="zip")
+           )
 
 
 # %% ---- 2025-06-09 ------------------------
