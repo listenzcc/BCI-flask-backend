@@ -19,14 +19,31 @@ Functions:
 # %% ---- 2025-06-09 ------------------------
 # Requirements and constants
 import os
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 from .log import logger
 
+# %%
+# 注册字体
+font_path = './asset/msyh.ttc'  # 替换为你的字体文件路径
+font_prop = fm.FontProperties(fname=font_path)
+fm.fontManager.addfont(font_path)  # 注册字体到字体管理器
+
+# 获取字体名称
+font_name = font_prop.get_name()
+
+# 配置全局字体
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = [font_name]
+plt.rcParams['axes.unicode_minus'] = False
 
 # %% ---- 2025-06-09 ------------------------
 # Function and class
+
+
 def register_chinese_font():
     """注册中文字体，返回字体名称"""
     font_name = 'STSong-Light'

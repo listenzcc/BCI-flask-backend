@@ -25,14 +25,14 @@ t = datetime.strftime(datetime.now(), '%Y%m%d-%H%M%S')
 # %% ---- 2025-06-09 ------------------------
 # Function and class
 
-logger.add('log/report-debug.{t}.log',
+logger.add(f'log/report-debug.{t}.log',
            level='DEBUG',
            enqueue=True,
            backtrace=True,
            diagnose=True,
            )
 
-logger.add('log/report-info.{t}.log',
+logger.add(f'log/report-info.{t}.log',
            level='INFO',
            enqueue=True,
            backtrace=True,
