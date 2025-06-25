@@ -28,6 +28,21 @@ from .util.figure_worker.mk_figure import MkCarFigure1, MkCarFigure2, MkCarFigur
 from .util.figure_worker.mk_figure import MkMouseFigure1, MkMouseFigure2, MkMouseFigure3
 
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+
+
+# 注册字体
+font_path = './asset/msyh.ttc'  # 替换为你的字体文件路径
+font_prop = fm.FontProperties(fname=font_path)
+fm.fontManager.addfont(font_path)  # 注册字体到字体管理器
+
+# 获取字体名称
+font_name = font_prop.get_name()
+
+# 配置全局字体
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = [font_name]
+plt.rcParams['axes.unicode_minus'] = False
 
 # plt.style.use('fivethirtyeight')
 plt.style.use('./pacoty.mplstyle')
